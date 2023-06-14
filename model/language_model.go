@@ -22,15 +22,18 @@ func GetLanguageById(c *gin.Context) (*Language, error) {
 	var lang Language
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return nil, errors.New("invalid id, please, make sure to pass a number")
+		return nil, errors.New("invalid id, make sure to pass a number")
 	}
 
 	lang.ID = uint(id)
 	result := DB.First(&lang)
-	return &lang, result.Error
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &lang, nil
 }
 
-func GetAllLanguanges(c *gin.Context) (*[]Language, error) {
+func GetAllLanguages(c *gin.Context) (*[]Language, error) {
 	var langs []Language
 	page, _ := strconv.Atoi(c.DefaultQuery("p", "0"))
 	result := DB.Offset(page * 10).Limit(10).Find(&langs)

@@ -2,8 +2,9 @@ package controller
 
 import (
 	"net/http"
+	model "orm-golang/model"
+
 	"github.com/gin-gonic/gin"
-	model"orm-golang/model"
 )
 
 func GetLangByIdEndpoint(c *gin.Context) {
@@ -16,7 +17,7 @@ func GetLangByIdEndpoint(c *gin.Context) {
 }
 
 func GetAllLangsEndpoint(c *gin.Context) {
-	obj, err := model.GetAllLanguanges(c)
+	obj, err := model.GetAllLanguages(c)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
