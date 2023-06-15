@@ -9,9 +9,9 @@ import (
 )
 
 type Category struct {
-	ID         uint      `gorm:"primaryKey;column:category_id"`
+	ID         uint      `json:",omitempty" gorm:"primaryKey;column:category_id"`
 	Name       string    `gorm:"size:100"`
-	LastUpdate time.Time `gorm:"autoUpdateTime"`
+	LastUpdate time.Time `json:",omitempty" gorm:"autoUpdateTime"`
 }
 
 func (Category) TableName() string {

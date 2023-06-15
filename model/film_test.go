@@ -9,6 +9,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/dchest/uniuri"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -34,99 +35,126 @@ func init() {
 	}
 	fmt.Println("Connection was successful")
 
-	fmt.Print("Migrating the Model Language to the Test Database\n")
-	if err := DB.AutoMigrate(&Language{}); err != nil {
-		fmt.Errorf("Fail to migrate the model Language: %v\n", err)
+	fmt.Print("Migrating the Model Film to the Test Database\n")
+
+	DB.AutoMigrate(&Language{})
+	if err := DB.AutoMigrate(&Film{}); err != nil {
+		fmt.Errorf("Fail to migrate the model Film: %v\n", err)
+		panic(err)
 	}
+	DB.Migrator().CreateConstraint(&Film{}, "Language")
 	fmt.Printf("Migration has been successful\n")
 }
-func TestGetLanguageById(t *testing.T) {
-	var wants = []Case[Language]{
+
+func createMockFilm(id uint) Film {
+	var f Film
+	f.ID = id
+	f.Title = uniuri.NewLen(50)
+	f.Description = "An interest film"
+	f.ReleaseYear = "2013"
+	f.LanguageID = 1
+	f.RentalDuration = 3
+	f.RentalRate = 5.99
+	f.Length = 120
+	f.ReplacementCost = 50.99
+	f.SpecialFeatures = []string{"special features", "behind the scene"}
+	f.Rating = "G"
+	f.FullText = ""
+
+	return f
+}
+
+func TestGetFilmById(t *testing.T) {
+	var wants = []Case[Film]{
 		{Title: "Should return an error when called with empty database",
-			Input:   []Language{},
 			Error:   "record not found",
 			Context: []gin.Param{{Key: "id", Value: "1"}}},
 		{Title: "Should return an error when passing an invalid ID",
-			Input:   []Language{},
 			Error:   "invalid id, make sure to pass a number",
 			Context: []gin.Param{{Key: "id", Value: "a"}}},
-		{Title: "Should return an Language{} when called with a valid ID",
-			Input:   []Language{{Name: "English"}},
+		{Title: "Should return an Film{} when called with a valid ID",
+			Input:   []Film{createMockFilm(0)},
 			Context: []gin.Param{{Key: "id", Value: "1"}}},
 	}
+	DB.Create(&Language{ID: 1, Name: "English"})
 	for _, want := range wants {
 		t.Run(want.Title, func(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
+			DB.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE;")
+			if want.Input != nil {
+				for i := range want.Input {
+					DB.Create(&want.Input[i])
+				}
+			}
+
+			film, err := GetFilmById(ctx)
+			if err != nil && err.Error() != want.Error {
+				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
+			}
+			for _, wantCategory := range want.Input {
+				if film != nil && film.Title != wantCategory.Title {
+					t.Errorf("The return fail to meet the expectation, want: %v, got: %v", wantCategory, film)
+				}
+			}
+
+		})
+	}
+	DB.Delete(&Language{ID: 1, Name: "English"})
+}
+
+func TestGetAllFilms(t *testing.T) {
+	var wants = []Case[Film]{
+		{Title: "Shouldn't return error when called (empty database)",
+			Context: []gin.Param{{Key: "p", Value: "0"}}},
+		{Title: "Should return an []Film{} when called (non-empty database)",
+			Input:   []Film{createMockFilm(0), createMockFilm(0)},
+			Context: []gin.Param{{Key: "p", Value: "0"}}},
+	}
+	DB.Create(&Language{ID: 1, Name: "English"})
+	for _, want := range wants {
+		t.Run(want.Title, func(t *testing.T) {
+			ctx := MockContext()
+			ctx.Params = want.Context
+
+			DB.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE;")
 
 			for i := range want.Input {
 				DB.Create(&want.Input[i])
 			}
 
-			lang, err := GetLanguageById(ctx)
+			films, err := GetAllFilms(ctx)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
 			}
-			for _, wantLanguage := range want.Input {
-				if lang != nil && lang.Name != wantLanguage.Name {
-					t.Errorf("The return fail to meet the expectation, want: %v, got: %v", wantLanguage, lang)
+			for index, wantCategory := range want.Input {
+				if films != nil && (*films)[index].Title != wantCategory.Title {
+					t.Errorf("The return fail to meet the expectation, want: %v, got: %v", wantCategory, films)
 				}
 			}
 
 		})
 	}
+	DB.Delete(&Language{ID: 1, Name: "English"})
 }
 
-func TestGetAllLanguages(t *testing.T) {
-	var wants = []Case[Language]{
-		{Title: "Shouldn't return error when called (empty database)",
-			Context: []gin.Param{{Key: "p", Value: "0"}}},
-		{Title: "Should return an []Language{} when called (non-empty database)",
-			Input:   []Language{{Name: "English"}, {Name: "Portuguese"}},
-			Context: []gin.Param{{Key: "p", Value: "0"}}},
-	}
-	for _, want := range wants {
-		t.Run(want.Title, func(t *testing.T) {
-			ctx := MockContext()
-			ctx.Params = want.Context
-
-			DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
-
-			for i := range want.Input {
-				DB.Create(&Language{Name: want.Input[i].Name})
-			}
-
-			langs, err := GetAllLanguages(ctx)
-
-			if err != nil && err.Error() != want.Error {
-				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
-			}
-			for index, wantLanguage := range want.Input {
-				if langs != nil && (*langs)[index].Name != wantLanguage.Name {
-					t.Errorf("The return fail to meet the expectation, want: %v, got: %v", wantLanguage, langs)
-				}
-			}
-
-		})
-	}
-}
-
-func TestCreateNewLanguage(t *testing.T) {
-	var wants = []Case[Language]{
+func TestCreateNewFilm(t *testing.T) {
+	var wants = []Case[Film]{
 		{Title: "Should return an error when called with body empty",
 			Error: "invalid request"},
 		{Title: "Should return an error when called with an duplicate ID",
-			Input: []Language{{ID: 1, Name: "Portuguese"}},
-			Error: "ERROR: duplicate key value violates unique constraint \"language_pkey\" (SQLSTATE 23505)"},
-		{Title: "Should return a Language{} when called",
-			Input: []Language{{Name: "Portuguese"}}},
+			Input: []Film{createMockFilm(1)},
+			Error: "ERROR: duplicate key value violates unique constraint \"film_pkey\" (SQLSTATE 23505)"},
+		{Title: "Should return a Film{} when called",
+			Input: []Film{createMockFilm(0)}},
 	}
 
-	DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
-	DB.Create(&Language{Name: "English"})
+	DB.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE;")
+	DB.Create(&Language{ID: 1, Name: "English"})
+	film := createMockFilm(0)
+	DB.Create(&film)
 
 	for _, want := range wants {
 		t.Run(want.Title, func(t *testing.T) {
@@ -140,21 +168,22 @@ func TestCreateNewLanguage(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := CreateNewLanguage(ctx)
+			got, err := CreateNewFilm(ctx)
+
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
 			}
 
-			if got != nil && got.Name != want.Input[0].Name {
-				t.Errorf("The return fail to meet the expectation, want: %v, got: %v", want.Input[0].Name, got)
+			if got != nil && got.Title != want.Input[0].Title {
+				t.Errorf("The return fail to meet the expectation, want: %v, got: %v", want.Input[0].Title, got.Title)
 			}
 
 		})
 	}
+	DB.Delete(&Language{ID: 1, Name: "English"})
 }
-
-func TestUpdateLanguage(t *testing.T) {
-	var wants = []Case[Language]{
+func TestUpdateFilm(t *testing.T) {
+	var wants = []Case[Film]{
 		{Title: "Should return an error when called with a non-existent ID",
 			Context: []gin.Param{{Key: "id", Value: "2"}},
 			Error:   "record not found",
@@ -163,20 +192,22 @@ func TestUpdateLanguage(t *testing.T) {
 			Context: []gin.Param{{Key: "id", Value: "a"}},
 			Error:   "invalid id, make sure to pass a number",
 		},
-		{Title: "Shoud return error when called with an invalid Language{}",
+		{Title: "Shoud return error when called with an invalid Film{}",
 			Input:   nil,
 			Context: []gin.Param{{Key: "id", Value: "1"}},
 			Error:   "invalid request",
 		},
-		{Title: "Shoud return a Language{} updated when called",
-			Input:   []Language{{Name: "Portuguse"}},
+		{Title: "Shoud return a Film{} updated when called",
+			Input:   []Film{createMockFilm(1)},
 			Context: []gin.Param{{Key: "id", Value: "1"}},
 		},
 	}
 
 	for _, want := range wants {
-		DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
-		DB.Create(&Language{Name: "English"})
+		DB.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE;")
+		DB.Create(&Language{ID: 1, Name: "English"})
+		film := createMockFilm(0)
+		DB.Create(&film)
 		t.Run(want.Title, func(t *testing.T) {
 
 			ctx := MockContext()
@@ -189,21 +220,22 @@ func TestUpdateLanguage(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := UpdateLanguageById(ctx)
+			got, err := UpdateFilmById(ctx)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
 			}
 
-			if got != nil && got.Name != want.Input[0].Name {
-				t.Errorf("The return fail to meet the expectation, want: %v, got: %v", want.Input[0].Name, got)
+			if got != nil && got.Title != want.Input[0].Title {
+				t.Errorf("The return fail to meet the expectation, want: %v, got: %v", want.Input[0].Title, got.Title)
 			}
 		})
 	}
+	DB.Delete(&Language{ID: 1, Name: "English"})
 }
 
-func TestDeleteLanguageById(t *testing.T) {
-	var wants = []Case[Language]{
+func TestDeleteFIlmById(t *testing.T) {
+	var wants = []Case[Film]{
 		{Title: "Should return an error when called with an invalid ID",
 			Context: []gin.Param{{Key: "id", Value: "a"}},
 			Error:   "invalid id, make sure to pass a number",
@@ -212,13 +244,14 @@ func TestDeleteLanguageById(t *testing.T) {
 			Context: []gin.Param{{Key: "id", Value: "1"}},
 			Error:   "record not found",
 		},
-		{Title: "Should return the deleted Language{} when called",
-			Input:   []Language{{Name: "English"}},
+		{Title: "Should return the deleted Film{} when called",
+			Input:   []Film{createMockFilm(0)},
 			Context: []gin.Param{{Key: "id", Value: "1"}},
 		},
 	}
+	DB.Create(&Language{ID: 1, Name: "English"})
 	for _, want := range wants {
-		DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
+		DB.Exec("TRUNCATE TABLE film  RESTART IDENTITY CASCADE;")
 		if want.Input != nil {
 			DB.Create(&want.Input)
 		}
@@ -226,15 +259,16 @@ func TestDeleteLanguageById(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			got, err := DeleteLanguageById(ctx)
+			got, err := DeleteFilmById(ctx)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
 			}
 
-			if got != nil && got.Name != want.Input[0].Name {
-				t.Errorf("The return fail to meet the expectation, want: %v, got: %v", want.Input[0].Name, got)
+			if got != nil && got.Title != want.Input[0].Title {
+				t.Errorf("The return fail to meet the expectation, want: %v, got: %v", want.Input[0].Title, got.Title)
 			}
 		})
 	}
+	DB.Delete(&Language{ID: 1, Name: "English"})
 }

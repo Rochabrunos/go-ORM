@@ -60,7 +60,7 @@ func TestGetCategoryById(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			DB.Exec("TRUNCATE TABLE category RESTART IDENTITY;")
+			DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 
 			for i := range want.Input {
 				DB.Create(&want.Input[i])
@@ -94,7 +94,7 @@ func TestGetAllCategories(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			DB.Exec("TRUNCATE TABLE category RESTART IDENTITY;")
+			DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 
 			for i := range want.Input {
 				DB.Create(&want.Input[i])
@@ -126,7 +126,7 @@ func TestCreateNewCategory(t *testing.T) {
 			Input: []Category{{Name: "Action"}}},
 	}
 
-	DB.Exec("TRUNCATE TABLE category RESTART IDENTITY;")
+	DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 	DB.Create(&Category{Name: "Drama"})
 
 	for _, want := range wants {
@@ -158,7 +158,7 @@ func TestCreateNewCategory(t *testing.T) {
 func TestUpdateCategory(t *testing.T) {
 	var wants = []Case[Category]{
 		{Title: "Should return an error when called with a non-existent ID",
-			Context: []gin.Param{{Key: "id", Value: "1"}},
+			Context: []gin.Param{{Key: "id", Value: "2"}},
 			Error:   "record not found",
 		},
 		{Title: "Shoud return error when called with an invalid ID",
@@ -168,7 +168,7 @@ func TestUpdateCategory(t *testing.T) {
 		{Title: "Shoud return error when called with an invalid Category{}",
 			Input:   nil,
 			Context: []gin.Param{{Key: "id", Value: "1"}},
-			Error:   "record not found",
+			Error:   "invalid request",
 		},
 		{Title: "Shoud return a Category{} updated when called",
 			Input:   []Category{{Name: "Action"}},
@@ -177,10 +177,8 @@ func TestUpdateCategory(t *testing.T) {
 	}
 
 	for _, want := range wants {
-		DB.Exec("TRUNCATE TABLE category RESTART IDENTITY;")
-		if want.Input != nil {
-			DB.Create(&Category{Name: "Drama"})
-		}
+		DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
+		DB.Create(&Category{Name: "Drama"})
 		t.Run(want.Title, func(t *testing.T) {
 
 			ctx := MockContext()
@@ -222,7 +220,7 @@ func TestDeleteCategoryById(t *testing.T) {
 		},
 	}
 	for _, want := range wants {
-		DB.Exec("TRUNCATE TABLE category RESTART IDENTITY;")
+		DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 		if want.Input != nil {
 			DB.Create(&want.Input)
 		}
