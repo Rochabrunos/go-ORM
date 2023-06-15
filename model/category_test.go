@@ -15,18 +15,6 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-<<<<<<< HEAD
-type Case struct {
-	Title   string
-	Input   []Language
-	Error   string
-	Context []gin.Param
-}
-
-var DB *gorm.DB
-
-=======
->>>>>>> caa717724aed354e674ae8e21ea91d60755186a0
 func init() {
 	var err error
 	var dbUser string = os.Getenv("TEST_DB_USER")
@@ -46,24 +34,25 @@ func init() {
 	}
 	fmt.Println("Connection was successful")
 
-	fmt.Print("Migrating the Model Language to the Test Database\n")
-	if err := DB.AutoMigrate(&Language{}); err != nil {
-		fmt.Errorf("Fail to migrate the model Language: %v\n", err)
+	fmt.Print("Migrating the Model Category to the Test Database\n")
+	if err := DB.AutoMigrate(&Category{}); err != nil {
+		fmt.Errorf("Fail to migrate the model Category: %v\n", err)
 	}
 	fmt.Printf("Migration has been successful\n")
 }
-func TestGetLanguageById(t *testing.T) {
-	var wants = []Case[Language]{
+
+func TestGetCategoryById(t *testing.T) {
+	var wants = []Case[Category]{
 		{Title: "Should return an error when called with empty database",
-			Input:   []Language{},
+			Input:   []Category{},
 			Error:   "record not found",
 			Context: []gin.Param{{Key: "id", Value: "1"}}},
 		{Title: "Should return an error when passing an invalid ID",
-			Input:   []Language{},
+			Input:   []Category{},
 			Error:   "invalid id, make sure to pass a number",
 			Context: []gin.Param{{Key: "id", Value: "a"}}},
-		{Title: "Should return an Language{} when called with a valid ID",
-			Input:   []Language{{Name: "English"}},
+		{Title: "Should return an Category{} when called with a valid ID",
+			Input:   []Category{{Name: "Drama"}},
 			Context: []gin.Param{{Key: "id", Value: "1"}}},
 	}
 	for _, want := range wants {
@@ -71,20 +60,20 @@ func TestGetLanguageById(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
+			DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 
 			for i := range want.Input {
 				DB.Create(&want.Input[i])
 			}
 
-			lang, err := GetLanguageById(ctx, DB)
+			lang, err := GetCategoryById(ctx)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
 			}
-			for _, wantLanguage := range want.Input {
-				if lang != nil && lang.Name != wantLanguage.Name {
-					t.Errorf("The return fail to meet the expectation, want: %v, got: %v", wantLanguage, lang)
+			for _, wantCategory := range want.Input {
+				if lang != nil && lang.Name != wantCategory.Name {
+					t.Errorf("The return fail to meet the expectation, want: %v, got: %v", wantCategory, lang)
 				}
 			}
 
@@ -92,12 +81,12 @@ func TestGetLanguageById(t *testing.T) {
 	}
 }
 
-func TestGetAllLanguages(t *testing.T) {
-	var wants = []Case[Language]{
+func TestGetAllCategories(t *testing.T) {
+	var wants = []Case[Category]{
 		{Title: "Shouldn't return error when called (empty database)",
 			Context: []gin.Param{{Key: "p", Value: "0"}}},
-		{Title: "Should return an []Language{} when called (non-empty database)",
-			Input:   []Language{{Name: "English"}, {Name: "Portuguese"}},
+		{Title: "Should return an []Category{} when called (non-empty database)",
+			Input:   []Category{{Name: "Drama"}, {Name: "Action"}},
 			Context: []gin.Param{{Key: "p", Value: "0"}}},
 	}
 	for _, want := range wants {
@@ -105,20 +94,20 @@ func TestGetAllLanguages(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
+			DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 
 			for i := range want.Input {
-				DB.Create(&Language{Name: want.Input[i].Name})
+				DB.Create(&want.Input[i])
 			}
 
-			langs, err := GetAllLanguages(ctx, DB)
+			langs, err := GetAllCategories(ctx)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
 			}
-			for index, wantLanguage := range want.Input {
-				if langs != nil && (*langs)[index].Name != wantLanguage.Name {
-					t.Errorf("The return fail to meet the expectation, want: %v, got: %v", wantLanguage, langs)
+			for index, wantCategory := range want.Input {
+				if langs != nil && (*langs)[index].Name != wantCategory.Name {
+					t.Errorf("The return fail to meet the expectation, want: %v, got: %v", wantCategory, langs)
 				}
 			}
 
@@ -126,19 +115,19 @@ func TestGetAllLanguages(t *testing.T) {
 	}
 }
 
-func TestCreateNewLanguage(t *testing.T) {
-	var wants = []Case[Language]{
+func TestCreateNewCategory(t *testing.T) {
+	var wants = []Case[Category]{
 		{Title: "Should return an error when called with body empty",
 			Error: "invalid request"},
 		{Title: "Should return an error when called with an duplicate ID",
-			Input: []Language{{ID: 1, Name: "Portuguese"}},
-			Error: "ERROR: duplicate key value violates unique constraint \"language_pkey\" (SQLSTATE 23505)"},
-		{Title: "Should return a Language{} when called",
-			Input: []Language{{Name: "Portuguese"}}},
+			Input: []Category{{ID: 1, Name: "Drama"}},
+			Error: "ERROR: duplicate key value violates unique constraint \"category_pkey\" (SQLSTATE 23505)"},
+		{Title: "Should return a Category{} when called",
+			Input: []Category{{Name: "Action"}}},
 	}
 
-	DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
-	DB.Create(&Language{Name: "English"})
+	DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
+	DB.Create(&Category{Name: "Drama"})
 
 	for _, want := range wants {
 		t.Run(want.Title, func(t *testing.T) {
@@ -152,7 +141,8 @@ func TestCreateNewLanguage(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := CreateNewLanguage(ctx, DB)
+			got, err := CreateNewCategory(ctx)
+
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
 			}
@@ -165,8 +155,8 @@ func TestCreateNewLanguage(t *testing.T) {
 	}
 }
 
-func TestUpdateLanguage(t *testing.T) {
-	var wants = []Case[Language]{
+func TestUpdateCategory(t *testing.T) {
+	var wants = []Case[Category]{
 		{Title: "Should return an error when called with a non-existent ID",
 			Context: []gin.Param{{Key: "id", Value: "2"}},
 			Error:   "record not found",
@@ -175,20 +165,20 @@ func TestUpdateLanguage(t *testing.T) {
 			Context: []gin.Param{{Key: "id", Value: "a"}},
 			Error:   "invalid id, make sure to pass a number",
 		},
-		{Title: "Shoud return error when called with an invalid Language{}",
+		{Title: "Shoud return error when called with an invalid Category{}",
 			Input:   nil,
 			Context: []gin.Param{{Key: "id", Value: "1"}},
 			Error:   "invalid request",
 		},
-		{Title: "Shoud return a Language{} updated when called",
-			Input:   []Language{{Name: "Portuguse"}},
+		{Title: "Shoud return a Category{} updated when called",
+			Input:   []Category{{Name: "Action"}},
 			Context: []gin.Param{{Key: "id", Value: "1"}},
 		},
 	}
 
 	for _, want := range wants {
-		DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
-		DB.Create(&Language{Name: "English"})
+		DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
+		DB.Create(&Category{Name: "Drama"})
 		t.Run(want.Title, func(t *testing.T) {
 
 			ctx := MockContext()
@@ -201,7 +191,7 @@ func TestUpdateLanguage(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := UpdateLanguageById(ctx, DB)
+			got, err := UpdateCategoryById(ctx)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -214,8 +204,8 @@ func TestUpdateLanguage(t *testing.T) {
 	}
 }
 
-func TestDeleteLanguageById(t *testing.T) {
-	var wants = []Case[Language]{
+func TestDeleteCategoryById(t *testing.T) {
+	var wants = []Case[Category]{
 		{Title: "Should return an error when called with an invalid ID",
 			Context: []gin.Param{{Key: "id", Value: "a"}},
 			Error:   "invalid id, make sure to pass a number",
@@ -224,13 +214,13 @@ func TestDeleteLanguageById(t *testing.T) {
 			Context: []gin.Param{{Key: "id", Value: "1"}},
 			Error:   "record not found",
 		},
-		{Title: "Should return the deleted Language{} when called",
-			Input:   []Language{{Name: "English"}},
+		{Title: "Should return the deleted Category{} when called",
+			Input:   []Category{{Name: "Drama"}},
 			Context: []gin.Param{{Key: "id", Value: "1"}},
 		},
 	}
 	for _, want := range wants {
-		DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
+		DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 		if want.Input != nil {
 			DB.Create(&want.Input)
 		}
@@ -238,7 +228,7 @@ func TestDeleteLanguageById(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			got, err := DeleteLanguageById(ctx, DB)
+			got, err := DeleteCategoryById(ctx)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())

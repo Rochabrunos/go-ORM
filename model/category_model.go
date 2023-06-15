@@ -23,19 +23,24 @@ func GetCategoryById(c *gin.Context, db *gorm.DB) (*Category, error) {
 	var category Category
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return nil, errors.New("invalid id, please, make sure to pass a number")
+		return nil, errors.New("invalid id, make sure to pass a number")
 	}
-
 	category.ID = uint(id)
-	result := db.First(&category)
-	return &category, result.Error
+
+	if result := DB.First(&category); result.Error != nil {
+		return nil, result.Error
+	}
+	return &category, nil
 }
 
 func GetAllCategories(c *gin.Context, db *gorm.DB) (*[]Category, error) {
 	var category []Category
 	page, _ := strconv.Atoi(c.DefaultQuery("p", "0"))
-	result := db.Offset(page * 10).Limit(10).Find(&category)
-	return &category, result.Error
+
+	if result := DB.Offset(page * 10).Limit(10).Find(&category); result.Error != nil {
+		return nil, result.Error
+	}
+	return &category, nil
 }
 
 func CreateNewCategory(c *gin.Context, db *gorm.DB) (*Category, error) {
@@ -43,20 +48,24 @@ func CreateNewCategory(c *gin.Context, db *gorm.DB) (*Category, error) {
 	if err := c.ShouldBindJSON(&category); err != nil {
 		return nil, err
 	}
-	result := db.Create(&category)
-	return &category, result.Error
+	if result := DB.Create(&category); result.Error != nil {
+		return nil, result.Error
+	}
+	return &category, nil
 }
 
-func UpdateCategoryById(c *gin.Context, db *gorm.DB) (*Category, error) {
-	obj, err := GetCategoryById(c, db)
+func UpdateCategoryById(c *gin.Context) (*Category, error) {
+	category, err := GetCategoryById(c)
 	if err != nil {
 		return nil, err
 	}
-	if err := c.ShouldBindJSON(obj); err != nil {
+	if err := c.ShouldBindJSON(category); err != nil {
 		return nil, err
 	}
-	result := db.Save(obj)
-	return obj, result.Error
+	if result := DB.Save(category); result.Error != nil {
+		return nil, result.Error
+	}
+	return category, nil
 }
 
 func DeleteCategoryById(c *gin.Context, db *gorm.DB) (*Category, error) {
@@ -64,6 +73,8 @@ func DeleteCategoryById(c *gin.Context, db *gorm.DB) (*Category, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := db.Delete(obj)
-	return obj, result.Error
+	if result := DB.Delete(obj); result.Error != nil {
+		return nil, result.Error
+	}
+	return obj, nil
 }
