@@ -1,7 +1,11 @@
 package model
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -9,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type Case struct {
@@ -29,18 +34,19 @@ func init() {
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5433 sslmode=disable Timezone=America/Sao_Paulo", dbHost, dbUser, dbPass, dbName)
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger:                                   logger.Default.LogMode(logger.Silent),
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Connection was successfuly")
+	fmt.Println("Connection was successful")
 
-	fmt.Print("Migrating Model Language to Test Database\n")
+	fmt.Print("Migrating the Model Language to the Test Database\n")
 	if err := DB.AutoMigrate(&Language{}); err != nil {
 		fmt.Errorf("Fail to migrate the model Language: %v\n", err)
 	}
-	fmt.Printf("Migration succeeded\n")
+	fmt.Printf("Migration has been successful\n")
 }
 
 func MockContext() *gin.Context {
@@ -53,9 +59,17 @@ func MockContext() *gin.Context {
 }
 func TestGetLanguageById(t *testing.T) {
 	var wants = []Case{
-		{Title: "Empty database should return an error", Input: []Language{}, Error: "record not found", Context: []gin.Param{{Key: "id", Value: "1"}}},
-		{Title: "Passing an invalid id should return an error", Input: []Language{}, Error: "invalid id, make sure to pass a number", Context: []gin.Param{{Key: "id", Value: "a"}}},
-		{Title: "Should return an object Language when callled with appropriate id", Input: []Language{{Name: "English"}}, Context: []gin.Param{{Key: "id", Value: "1"}}},
+		{Title: "Should return an error when called with empty database",
+			Input:   []Language{},
+			Error:   "record not found",
+			Context: []gin.Param{{Key: "id", Value: "1"}}},
+		{Title: "Should return an error when passing an invalid ID",
+			Input:   []Language{},
+			Error:   "invalid id, make sure to pass a number",
+			Context: []gin.Param{{Key: "id", Value: "a"}}},
+		{Title: "Should return an Language{} when called with an valid ID",
+			Input:   []Language{{Name: "English"}},
+			Context: []gin.Param{{Key: "id", Value: "1"}}},
 	}
 	for _, want := range wants {
 		t.Run(want.Title, func(t *testing.T) {
@@ -85,8 +99,11 @@ func TestGetLanguageById(t *testing.T) {
 
 func TestGetAllLanguages(t *testing.T) {
 	var wants = []Case{
-		{Title: "Shouldn't return error when called with an empty DB", Input: []Language{}, Context: []gin.Param{{Key: "p", Value: "0"}}},
-		{Title: "Should return an array when called with an non-empty DB", Input: []Language{{Name: "English"}, {Name: "Portuguese"}}, Context: []gin.Param{{Key: "p", Value: "0"}}},
+		{Title: "Shouldn't return error when called (empty database)",
+			Context: []gin.Param{{Key: "p", Value: "0"}}},
+		{Title: "Should return an []Language{} when called (non-empty database)",
+			Input:   []Language{{Name: "English"}, {Name: "Portuguese"}},
+			Context: []gin.Param{{Key: "p", Value: "0"}}},
 	}
 	for _, want := range wants {
 		t.Run(want.Title, func(t *testing.T) {
@@ -96,7 +113,7 @@ func TestGetAllLanguages(t *testing.T) {
 			DB.Exec("TRUNCATE TABLE language RESTART IDENTITY;")
 
 			for i := range want.Input {
-				DB.Create(&want.Input[i])
+				DB.Create(&Language{Name: want.Input[i].Name})
 			}
 
 			langs, err := GetAllLanguages(ctx)
@@ -110,6 +127,133 @@ func TestGetAllLanguages(t *testing.T) {
 				}
 			}
 
+		})
+	}
+}
+
+func TestCreateNewLanguage(t *testing.T) {
+	var wants = []Case{
+		{Title: "Should return an error when called with body empty",
+			Error: "invalid request"},
+		{Title: "Should return an error when called with an duplicate ID",
+			Input: []Language{{ID: 1, Name: "Portuguese"}},
+			Error: "ERROR: duplicate key value violates unique constraint \"language_pkey\" (SQLSTATE 23505)"},
+		{Title: "Should return a Language{} when called",
+			Input: []Language{{Name: "Portuguese"}}},
+	}
+
+	DB.Exec("TRUNCATE TABLE language RESTART IDENTITY;")
+	DB.Create(&Language{Name: "English"})
+
+	for _, want := range wants {
+		t.Run(want.Title, func(t *testing.T) {
+
+			ctx := MockContext()
+			ctx.Request = &http.Request{Header: http.Header{}}
+			ctx.Request.Header.Set("content-type", "application/json")
+
+			if want.Input != nil {
+				jsonBytes, _ := json.Marshal(want.Input[0])
+				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
+			}
+
+			got, err := CreateNewLanguage(ctx)
+			if err != nil && err.Error() != want.Error {
+				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
+			}
+
+			if got != nil && got.Name != want.Input[0].Name {
+				t.Errorf("The return fail to meet the expectation, want: %v, got: %v", want.Input[0].Name, got)
+			}
+
+		})
+	}
+}
+
+func TestUpdateLanguage(t *testing.T) {
+	var wants = []Case{
+		{Title: "Should return an error when called with a non-existent ID",
+			Context: []gin.Param{{Key: "id", Value: "1"}},
+			Error:   "record not found",
+		},
+		{Title: "Shoud return error when called with an invalid ID",
+			Context: []gin.Param{{Key: "id", Value: "a"}},
+			Error:   "invalid id, make sure to pass a number",
+		},
+		{Title: "Shoud return error when called with an invalid Language{}",
+			Input:   nil,
+			Context: []gin.Param{{Key: "id", Value: "1"}},
+			Error:   "record not found",
+		},
+		{Title: "Shoud return a Language{} updated when called",
+			Input:   []Language{{Name: "Portuguse"}},
+			Context: []gin.Param{{Key: "id", Value: "1"}},
+		},
+	}
+
+	for _, want := range wants {
+		DB.Exec("TRUNCATE TABLE language RESTART IDENTITY;")
+		if want.Input != nil {
+			DB.Create(&Language{Name: "English"})
+		}
+		t.Run(want.Title, func(t *testing.T) {
+
+			ctx := MockContext()
+			ctx.Params = want.Context
+			ctx.Request = &http.Request{Header: http.Header{}}
+			ctx.Request.Header.Set("content-type", "application/json")
+
+			if want.Input != nil {
+				jsonBytes, _ := json.Marshal(want.Input[0])
+				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
+			}
+
+			got, err := UpdateLanguageById(ctx)
+
+			if err != nil && err.Error() != want.Error {
+				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
+			}
+
+			if got != nil && got.Name != want.Input[0].Name {
+				t.Errorf("The return fail to meet the expectation, want: %v, got: %v", want.Input[0].Name, got)
+			}
+		})
+	}
+}
+
+func TestDeleteLanguageById(t *testing.T) {
+	var wants = []Case{
+		{Title: "Should return an error when called with an invalid ID",
+			Context: []gin.Param{{Key: "id", Value: "a"}},
+			Error:   "invalid id, make sure to pass a number",
+		},
+		{Title: "Should return an error when called with a non-existent ID",
+			Context: []gin.Param{{Key: "id", Value: "1"}},
+			Error:   "record not found",
+		},
+		{Title: "Should return an error when called with a non-existent ID",
+			Input:   []Language{{Name: "English"}},
+			Context: []gin.Param{{Key: "id", Value: "1"}},
+		},
+	}
+	for _, want := range wants {
+		DB.Exec("TRUNCATE TABLE language RESTART IDENTITY;")
+		if want.Input != nil {
+			DB.Create(&want.Input)
+		}
+		t.Run(want.Title, func(t *testing.T) {
+			ctx := MockContext()
+			ctx.Params = want.Context
+
+			got, err := DeleteLanguageById(ctx)
+
+			if err != nil && err.Error() != want.Error {
+				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
+			}
+
+			if got != nil && got.Name != want.Input[0].Name {
+				t.Errorf("The return fail to meet the expectation, want: %v, got: %v", want.Input[0].Name, got)
+			}
 		})
 	}
 }

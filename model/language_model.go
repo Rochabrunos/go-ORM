@@ -9,9 +9,9 @@ import (
 )
 
 type Language struct {
-	ID         uint       `gorm:"primaryKey;column:language_id"`
+	ID         uint       `json:",omitempty" gorm:"primaryKey;column:language_id"`
 	Name       string     `gorm:"size:50"`
-	LastUpdate *time.Time `gorm:"autoUpdateTime:mili"`
+	LastUpdate *time.Time `json:",omitempty" gorm:"autoUpdateTime:mili"`
 }
 
 func (Language) TableName() string {
@@ -26,8 +26,7 @@ func GetLanguageById(c *gin.Context) (*Language, error) {
 	}
 
 	lang.ID = uint(id)
-	result := DB.First(&lang)
-	if result.Error != nil {
+	if result := DB.First(&lang); result.Error != nil {
 		return nil, result.Error
 	}
 	return &lang, nil
@@ -36,8 +35,10 @@ func GetLanguageById(c *gin.Context) (*Language, error) {
 func GetAllLanguages(c *gin.Context) (*[]Language, error) {
 	var langs []Language
 	page, _ := strconv.Atoi(c.DefaultQuery("p", "0"))
-	result := DB.Offset(page * 10).Limit(10).Find(&langs)
-	return &langs, result.Error
+	if result := DB.Offset(page * 10).Limit(10).Find(&langs); result.Error != nil {
+		return nil, result.Error
+	}
+	return &langs, nil
 }
 
 func CreateNewLanguage(c *gin.Context) (*Language, error) {
@@ -45,27 +46,33 @@ func CreateNewLanguage(c *gin.Context) (*Language, error) {
 	if err := c.ShouldBindJSON(&newLang); err != nil {
 		return nil, err
 	}
-	result := DB.Create(&newLang)
-	return &newLang, result.Error
+	if result := DB.Create(&newLang); result.Error != nil {
+		return nil, result.Error
+	}
+	return &newLang, nil
 }
 
 func UpdateLanguageById(c *gin.Context) (*Language, error) {
-	obj, err := GetLanguageById(c)
+	lang, err := GetLanguageById(c)
 	if err != nil {
 		return nil, err
 	}
-	if err := c.ShouldBindJSON(obj); err != nil {
+	if err := c.ShouldBindJSON(lang); err != nil {
 		return nil, err
 	}
-	result := DB.Save(obj)
-	return obj, result.Error
+	if result := DB.Save(lang); result.Error != nil {
+		return nil, result.Error
+	}
+	return lang, nil
 }
 
 func DeleteLanguageById(c *gin.Context) (*Language, error) {
-	obj, err := GetLanguageById(c)
+	lang, err := GetLanguageById(c)
 	if err != nil {
 		return nil, err
 	}
-	result := DB.Delete(obj)
-	return obj, result.Error
+	if result := DB.Delete(lang); result.Error != nil {
+		return nil, result.Error
+	}
+	return lang, nil
 }
