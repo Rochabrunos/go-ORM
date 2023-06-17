@@ -1,56 +1,59 @@
 package main
 
 import (
-	model"orm-golang/model"
+	model "orm-golang/model"
+	service "orm-golang/service"
 )
 
+var DB = service.GetDBConnection()
+
 func main() {
-	model.DB.AutoMigrate(&model.Language{})
-	model.DB.AutoMigrate(&model.Category{})
-	model.DB.AutoMigrate(&model.Film{})
-	model.DB.Migrator().CreateConstraint(&model.Film{}, "Language")
+	DB.AutoMigrate(&model.Language{})
+	DB.AutoMigrate(&model.Category{})
+	DB.AutoMigrate(&model.Film{})
+	DB.Migrator().CreateConstraint(&model.Film{}, "Language")
 
-	model.DB.AutoMigrate(&model.FilmCategory{})
-	model.DB.Migrator().CreateConstraint(&model.FilmCategory{}, "Film")
-	model.DB.Migrator().CreateConstraint(&model.FilmCategory{}, "Category")
+	DB.AutoMigrate(&model.FilmCategory{})
+	DB.Migrator().CreateConstraint(&model.FilmCategory{}, "Film")
+	DB.Migrator().CreateConstraint(&model.FilmCategory{}, "Category")
 
-	model.DB.AutoMigrate(&model.Actor{})
-	model.DB.AutoMigrate(&model.FilmActor{})
-	model.DB.Migrator().CreateConstraint(&model.FilmActor{}, "Actor")
-	model.DB.Migrator().CreateConstraint(&model.FilmActor{}, "Film")
+	DB.AutoMigrate(&model.Actor{})
+	DB.AutoMigrate(&model.FilmActor{})
+	DB.Migrator().CreateConstraint(&model.FilmActor{}, "Actor")
+	DB.Migrator().CreateConstraint(&model.FilmActor{}, "Film")
 
-	model.DB.AutoMigrate(&model.Country{})
-	model.DB.AutoMigrate(&model.City{})
-	model.DB.Migrator().CreateConstraint(&model.City{}, "Country")
+	DB.AutoMigrate(&model.Country{})
+	DB.AutoMigrate(&model.City{})
+	DB.Migrator().CreateConstraint(&model.City{}, "Country")
 
-	model.DB.AutoMigrate(&model.Address{})
-	model.DB.Migrator().CreateConstraint(&model.City{}, "City")
+	DB.AutoMigrate(&model.Address{})
+	DB.Migrator().CreateConstraint(&model.City{}, "City")
 
-	model.DB.AutoMigrate(&model.Store{})
-	model.DB.Migrator().CreateConstraint(&model.Store{}, "Address")
+	DB.AutoMigrate(&model.Store{})
+	DB.Migrator().CreateConstraint(&model.Store{}, "Address")
 
-	model.DB.AutoMigrate(&model.Staff{})
-	model.DB.Migrator().CreateConstraint(&model.Staff{}, "Address")
-	model.DB.Migrator().CreateConstraint(&model.Staff{}, "Store")
-	
+	DB.AutoMigrate(&model.Staff{})
+	DB.Migrator().CreateConstraint(&model.Staff{}, "Address")
+	DB.Migrator().CreateConstraint(&model.Staff{}, "Store")
+
 	//SETING UP THE FOREIGN KEY AFTER CREATING STAFF
-	model.DB.Migrator().CreateConstraint(&model.Store{}, "Staff")
-	
-	model.DB.AutoMigrate(&model.Customer{})
-	model.DB.Migrator().CreateConstraint(&model.Customer{},"Store")
-	model.DB.Migrator().CreateConstraint(&model.Customer{},"Address")
+	DB.Migrator().CreateConstraint(&model.Store{}, "Staff")
 
-	model.DB.AutoMigrate(&model.Inventory{})
-	model.DB.Migrator().CreateConstraint(&model.Inventory{}, "Film")
-	model.DB.Migrator().CreateConstraint(&model.Inventory{}, "Store")
+	DB.AutoMigrate(&model.Customer{})
+	DB.Migrator().CreateConstraint(&model.Customer{}, "Store")
+	DB.Migrator().CreateConstraint(&model.Customer{}, "Address")
 
-	model.DB.AutoMigrate(&model.Rental{})
-	model.DB.Migrator().CreateConstraint(&model.Rental{}, "Inventory")
-	model.DB.Migrator().CreateConstraint(&model.Rental{}, "Customer")
-	model.DB.Migrator().CreateConstraint(&model.Rental{}, "Staff")
+	DB.AutoMigrate(&model.Inventory{})
+	DB.Migrator().CreateConstraint(&model.Inventory{}, "Film")
+	DB.Migrator().CreateConstraint(&model.Inventory{}, "Store")
 
-	model.DB.AutoMigrate(&model.Payment{})
-	model.DB.Migrator().CreateConstraint(&model.Payment{}, "Customer")
-	model.DB.Migrator().CreateConstraint(&model.Payment{}, "Staff")
-	model.DB.Migrator().CreateConstraint(&model.Payment{}, "Rental")
+	DB.AutoMigrate(&model.Rental{})
+	DB.Migrator().CreateConstraint(&model.Rental{}, "Inventory")
+	DB.Migrator().CreateConstraint(&model.Rental{}, "Customer")
+	DB.Migrator().CreateConstraint(&model.Rental{}, "Staff")
+
+	DB.AutoMigrate(&model.Payment{})
+	DB.Migrator().CreateConstraint(&model.Payment{}, "Customer")
+	DB.Migrator().CreateConstraint(&model.Payment{}, "Staff")
+	DB.Migrator().CreateConstraint(&model.Payment{}, "Rental")
 }

@@ -23,6 +23,8 @@ type Case struct {
 	Context []gin.Param
 }
 
+var DB *gorm.DB
+
 func init() {
 	var err error
 	var dbUser string = os.Getenv("TEST_DB_USER")
@@ -82,7 +84,7 @@ func TestGetLanguageById(t *testing.T) {
 				DB.Create(&want.Input[i])
 			}
 
-			lang, err := GetLanguageById(ctx)
+			lang, err := GetLanguageById(ctx, DB)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -116,7 +118,7 @@ func TestGetAllLanguages(t *testing.T) {
 				DB.Create(&Language{Name: want.Input[i].Name})
 			}
 
-			langs, err := GetAllLanguages(ctx)
+			langs, err := GetAllLanguages(ctx, DB)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -157,7 +159,7 @@ func TestCreateNewLanguage(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := CreateNewLanguage(ctx)
+			got, err := CreateNewLanguage(ctx, DB)
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
 			}
@@ -208,7 +210,7 @@ func TestUpdateLanguage(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := UpdateLanguageById(ctx)
+			got, err := UpdateLanguageById(ctx, DB)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -245,7 +247,7 @@ func TestDeleteLanguageById(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			got, err := DeleteLanguageById(ctx)
+			got, err := DeleteLanguageById(ctx, DB)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())

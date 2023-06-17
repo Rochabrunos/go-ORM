@@ -2,12 +2,15 @@ package controller
 
 import (
 	"net/http"
+	model "orm-golang/model"
+	service "orm-golang/service"
+
 	"github.com/gin-gonic/gin"
-	model"orm-golang/model"
 )
 
 func GetFilmByIdEndpoint(c *gin.Context) {
-	obj, err := model.GetFilmById(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.GetFilmById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -16,7 +19,8 @@ func GetFilmByIdEndpoint(c *gin.Context) {
 }
 
 func GetAllFilmsEndpoint(c *gin.Context) {
-	obj, err := model.GetAllFilms(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.GetAllFilms(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -25,7 +29,8 @@ func GetAllFilmsEndpoint(c *gin.Context) {
 }
 
 func CreateFilmEndpoint(c *gin.Context) {
-	obj, err := model.CreateNewFilm(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.CreateNewFilm(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -34,7 +39,8 @@ func CreateFilmEndpoint(c *gin.Context) {
 }
 
 func ModifyFilmEndpoint(c *gin.Context) {
-	obj, err := model.UpdateFilmById(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.UpdateFilmById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -43,7 +49,8 @@ func ModifyFilmEndpoint(c *gin.Context) {
 }
 
 func DeleteFilmEndpoint(c *gin.Context) {
-	obj, err := model.DeleteFilmById(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.DeleteFilmById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return

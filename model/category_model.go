@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type Category struct {
@@ -18,7 +19,7 @@ func (Category) TableName() string {
 	return "category"
 }
 
-func GetCategoryById(c *gin.Context) (*Category, error) {
+func GetCategoryById(c *gin.Context, db *gorm.DB) (*Category, error) {
 	var category Category
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -26,43 +27,43 @@ func GetCategoryById(c *gin.Context) (*Category, error) {
 	}
 
 	category.ID = uint(id)
-	result := DB.First(&category)
+	result := db.First(&category)
 	return &category, result.Error
 }
 
-func GetAllCategories(c *gin.Context) (*[]Category, error) {
+func GetAllCategories(c *gin.Context, db *gorm.DB) (*[]Category, error) {
 	var category []Category
 	page, _ := strconv.Atoi(c.DefaultQuery("p", "0"))
-	result := DB.Offset(page * 10).Limit(10).Find(&category)
+	result := db.Offset(page * 10).Limit(10).Find(&category)
 	return &category, result.Error
 }
 
-func CreateNewCategory(c *gin.Context) (*Category, error) {
+func CreateNewCategory(c *gin.Context, db *gorm.DB) (*Category, error) {
 	var category Category
 	if err := c.ShouldBindJSON(&category); err != nil {
 		return nil, err
 	}
-	result := DB.Create(&category)
+	result := db.Create(&category)
 	return &category, result.Error
 }
 
-func UpdateCategoryById(c *gin.Context) (*Category, error) {
-	obj, err := GetCategoryById(c)
+func UpdateCategoryById(c *gin.Context, db *gorm.DB) (*Category, error) {
+	obj, err := GetCategoryById(c, db)
 	if err != nil {
 		return nil, err
 	}
 	if err := c.ShouldBindJSON(obj); err != nil {
 		return nil, err
 	}
-	result := DB.Save(obj)
+	result := db.Save(obj)
 	return obj, result.Error
 }
 
-func DeleteCategoryById(c *gin.Context) (*Category, error) {
-	obj, err := GetCategoryById(c)
+func DeleteCategoryById(c *gin.Context, db *gorm.DB) (*Category, error) {
+	obj, err := GetCategoryById(c, db)
 	if err != nil {
 		return nil, err
 	}
-	result := DB.Delete(obj)
+	result := db.Delete(obj)
 	return obj, result.Error
 }

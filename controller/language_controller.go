@@ -3,12 +3,14 @@ package controller
 import (
 	"net/http"
 	model "orm-golang/model"
+	service "orm-golang/service"
 
 	"github.com/gin-gonic/gin"
 )
 
 func GetLangByIdEndpoint(c *gin.Context) {
-	obj, err := model.GetLanguageById(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.GetLanguageById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -17,7 +19,8 @@ func GetLangByIdEndpoint(c *gin.Context) {
 }
 
 func GetAllLangsEndpoint(c *gin.Context) {
-	obj, err := model.GetAllLanguages(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.GetAllLanguages(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -26,7 +29,8 @@ func GetAllLangsEndpoint(c *gin.Context) {
 }
 
 func CreateLangEndpoint(c *gin.Context) {
-	obj, err := model.CreateNewLanguage(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.CreateNewLanguage(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -35,7 +39,8 @@ func CreateLangEndpoint(c *gin.Context) {
 }
 
 func ModifyLangEndpoint(c *gin.Context) {
-	obj, err := model.UpdateLanguageById(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.UpdateLanguageById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -44,7 +49,8 @@ func ModifyLangEndpoint(c *gin.Context) {
 }
 
 func DeleteLangEndpoint(c *gin.Context) {
-	obj, err := model.DeleteLanguageById(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.DeleteLanguageById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return

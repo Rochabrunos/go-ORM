@@ -2,12 +2,15 @@ package controller
 
 import (
 	"net/http"
+	model "orm-golang/model"
+	service "orm-golang/service"
+
 	"github.com/gin-gonic/gin"
-	model"orm-golang/model"
 )
 
 func GetCategByIdEndpoint(c *gin.Context) {
-	obj, err := model.GetCategoryById(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.GetCategoryById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -16,7 +19,8 @@ func GetCategByIdEndpoint(c *gin.Context) {
 }
 
 func GetAllCategsEndpoint(c *gin.Context) {
-	obj, err := model.GetAllCategories(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.GetAllCategories(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -25,7 +29,8 @@ func GetAllCategsEndpoint(c *gin.Context) {
 }
 
 func CreateCategEndpoint(c *gin.Context) {
-	obj, err := model.CreateNewCategory(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.CreateNewCategory(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -34,7 +39,8 @@ func CreateCategEndpoint(c *gin.Context) {
 }
 
 func ModifyCategEndpoint(c *gin.Context) {
-	obj, err := model.UpdateCategoryById(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.UpdateCategoryById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -43,7 +49,8 @@ func ModifyCategEndpoint(c *gin.Context) {
 }
 
 func DeleteCategEndpoint(c *gin.Context) {
-	obj, err := model.DeleteCategoryById(c)
+	connDB := service.GetDBConnection()
+	obj, err := model.DeleteCategoryById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return

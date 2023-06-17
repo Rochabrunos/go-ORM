@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type Language struct {
@@ -18,7 +19,7 @@ func (Language) TableName() string {
 	return "language"
 }
 
-func GetLanguageById(c *gin.Context) (*Language, error) {
+func GetLanguageById(c *gin.Context, db *gorm.DB) (*Language, error) {
 	var lang Language
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -26,52 +27,52 @@ func GetLanguageById(c *gin.Context) (*Language, error) {
 	}
 
 	lang.ID = uint(id)
-	if result := DB.First(&lang); result.Error != nil {
+	if result := db.First(&lang); result.Error != nil {
 		return nil, result.Error
 	}
 	return &lang, nil
 }
 
-func GetAllLanguages(c *gin.Context) (*[]Language, error) {
+func GetAllLanguages(c *gin.Context, db *gorm.DB) (*[]Language, error) {
 	var langs []Language
 	page, _ := strconv.Atoi(c.DefaultQuery("p", "0"))
-	if result := DB.Offset(page * 10).Limit(10).Find(&langs); result.Error != nil {
+	if result := db.Offset(page * 10).Limit(10).Find(&langs); result.Error != nil {
 		return nil, result.Error
 	}
 	return &langs, nil
 }
 
-func CreateNewLanguage(c *gin.Context) (*Language, error) {
+func CreateNewLanguage(c *gin.Context, db *gorm.DB) (*Language, error) {
 	var newLang Language
 	if err := c.ShouldBindJSON(&newLang); err != nil {
 		return nil, err
 	}
-	if result := DB.Create(&newLang); result.Error != nil {
+	if result := db.Create(&newLang); result.Error != nil {
 		return nil, result.Error
 	}
 	return &newLang, nil
 }
 
-func UpdateLanguageById(c *gin.Context) (*Language, error) {
-	lang, err := GetLanguageById(c)
+func UpdateLanguageById(c *gin.Context, db *gorm.DB) (*Language, error) {
+	lang, err := GetLanguageById(c, db)
 	if err != nil {
 		return nil, err
 	}
 	if err := c.ShouldBindJSON(lang); err != nil {
 		return nil, err
 	}
-	if result := DB.Save(lang); result.Error != nil {
+	if result := db.Save(lang); result.Error != nil {
 		return nil, result.Error
 	}
 	return lang, nil
 }
 
-func DeleteLanguageById(c *gin.Context) (*Language, error) {
-	lang, err := GetLanguageById(c)
+func DeleteLanguageById(c *gin.Context, db *gorm.DB) (*Language, error) {
+	lang, err := GetLanguageById(c, db)
 	if err != nil {
 		return nil, err
 	}
-	if result := DB.Delete(lang); result.Error != nil {
+	if result := db.Delete(lang); result.Error != nil {
 		return nil, result.Error
 	}
 	return lang, nil

@@ -1,4 +1,4 @@
-package model
+package service
 
 import (
 	"fmt"
@@ -8,7 +8,11 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+type DBService struct {
+	db *gorm.DB
+}
+
+var conn DBService
 
 func init() {
 	var err error
@@ -20,7 +24,7 @@ func init() {
 	fmt.Println("Inicializando a conexão com banco de dados")
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5433 sslmode=disable Timezone=America/Sao_Paulo", dbHost, dbUser, dbPass, dbName)
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+	conn.db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
@@ -28,4 +32,18 @@ func init() {
 	}
 
 	fmt.Println("Conexão realizada com sucesso")
+}
+
+func GetDBConnection() *gorm.DB {
+	sqlDB, err := conn.db.DB()
+	if err != nil {
+		panic(err)
+	}
+	newConn, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: sqlDB,
+	}), &gorm.Config{})
+	if err != nil {
+		panic(err)
+	}
+	return newConn
 }
