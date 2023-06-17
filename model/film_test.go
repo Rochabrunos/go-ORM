@@ -6,43 +6,21 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/dchest/uniuri"
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 func init() {
-	var err error
-	var dbUser string = os.Getenv("TEST_DB_USER")
-	var dbPass string = os.Getenv("TEST_DB_PASSWORD")
-	var dbName string = os.Getenv("TEST_DB_NAME")
-	var dbHost string = os.Getenv("TEST_DB_HOST")
+	var db = GetDBTestConnection()
 
-	fmt.Println("Initilizing database connection")
-
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5433 sslmode=disable Timezone=America/Sao_Paulo", dbHost, dbUser, dbPass, dbName)
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger:                                   logger.Default.LogMode(logger.Silent),
-		DisableForeignKeyConstraintWhenMigrating: true,
-	})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Connection was successful")
-
-	fmt.Print("Migrating the Model Film to the Test Database\n")
-
-	DB.AutoMigrate(&Language{})
-	if err := DB.AutoMigrate(&Film{}); err != nil {
+	db.AutoMigrate(&Language{})
+	if err := db.AutoMigrate(&Film{}); err != nil {
 		fmt.Errorf("Fail to migrate the model Film: %v\n", err)
 		panic(err)
 	}
-	DB.Migrator().CreateConstraint(&Film{}, "Language")
+	db.Migrator().CreateConstraint(&Film{}, "Language")
 	fmt.Printf("Migration has been successful\n")
 }
 
@@ -65,6 +43,7 @@ func createMockFilm(id uint) Film {
 }
 
 func TestGetFilmById(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Film]{
 		{Title: "Should return an error when called with empty database",
 			Error:   "record not found",
@@ -76,20 +55,20 @@ func TestGetFilmById(t *testing.T) {
 			Input:   []Film{createMockFilm(0)},
 			Context: []gin.Param{{Key: "id", Value: "1"}}},
 	}
-	DB.Create(&Language{ID: 1, Name: "English"})
+	db.Create(&Language{ID: 1, Name: "English"})
 	for _, want := range wants {
 		t.Run(want.Title, func(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			DB.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE;")
+			db.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE;")
 			if want.Input != nil {
 				for i := range want.Input {
-					DB.Create(&want.Input[i])
+					db.Create(&want.Input[i])
 				}
 			}
 
-			film, err := GetFilmById(ctx)
+			film, err := GetFilmById(ctx, db)
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
 			}
@@ -101,10 +80,11 @@ func TestGetFilmById(t *testing.T) {
 
 		})
 	}
-	DB.Delete(&Language{ID: 1, Name: "English"})
+	db.Delete(&Language{ID: 1, Name: "English"})
 }
 
 func TestGetAllFilms(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Film]{
 		{Title: "Shouldn't return error when called (empty database)",
 			Context: []gin.Param{{Key: "p", Value: "0"}}},
@@ -112,19 +92,19 @@ func TestGetAllFilms(t *testing.T) {
 			Input:   []Film{createMockFilm(0), createMockFilm(0)},
 			Context: []gin.Param{{Key: "p", Value: "0"}}},
 	}
-	DB.Create(&Language{ID: 1, Name: "English"})
+	db.Create(&Language{ID: 1, Name: "English"})
 	for _, want := range wants {
 		t.Run(want.Title, func(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			DB.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE;")
+			db.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE;")
 
 			for i := range want.Input {
-				DB.Create(&want.Input[i])
+				db.Create(&want.Input[i])
 			}
 
-			films, err := GetAllFilms(ctx)
+			films, err := GetAllFilms(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -137,10 +117,11 @@ func TestGetAllFilms(t *testing.T) {
 
 		})
 	}
-	DB.Delete(&Language{ID: 1, Name: "English"})
+	db.Delete(&Language{ID: 1, Name: "English"})
 }
 
 func TestCreateNewFilm(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Film]{
 		{Title: "Should return an error when called with body empty",
 			Error: "invalid request"},
@@ -151,10 +132,10 @@ func TestCreateNewFilm(t *testing.T) {
 			Input: []Film{createMockFilm(0)}},
 	}
 
-	DB.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE;")
-	DB.Create(&Language{ID: 1, Name: "English"})
+	db.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE;")
+	db.Create(&Language{ID: 1, Name: "English"})
 	film := createMockFilm(0)
-	DB.Create(&film)
+	db.Create(&film)
 
 	for _, want := range wants {
 		t.Run(want.Title, func(t *testing.T) {
@@ -168,7 +149,7 @@ func TestCreateNewFilm(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := CreateNewFilm(ctx)
+			got, err := CreateNewFilm(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -180,9 +161,10 @@ func TestCreateNewFilm(t *testing.T) {
 
 		})
 	}
-	DB.Delete(&Language{ID: 1, Name: "English"})
+	db.Delete(&Language{ID: 1, Name: "English"})
 }
 func TestUpdateFilm(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Film]{
 		{Title: "Should return an error when called with a non-existent ID",
 			Context: []gin.Param{{Key: "id", Value: "2"}},
@@ -204,10 +186,10 @@ func TestUpdateFilm(t *testing.T) {
 	}
 
 	for _, want := range wants {
-		DB.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE;")
-		DB.Create(&Language{ID: 1, Name: "English"})
+		db.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE;")
+		db.Create(&Language{ID: 1, Name: "English"})
 		film := createMockFilm(0)
-		DB.Create(&film)
+		db.Create(&film)
 		t.Run(want.Title, func(t *testing.T) {
 
 			ctx := MockContext()
@@ -220,7 +202,7 @@ func TestUpdateFilm(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := UpdateFilmById(ctx)
+			got, err := UpdateFilmById(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -231,10 +213,11 @@ func TestUpdateFilm(t *testing.T) {
 			}
 		})
 	}
-	DB.Delete(&Language{ID: 1, Name: "English"})
+	db.Delete(&Language{ID: 1, Name: "English"})
 }
 
 func TestDeleteFIlmById(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Film]{
 		{Title: "Should return an error when called with an invalid ID",
 			Context: []gin.Param{{Key: "id", Value: "a"}},
@@ -249,17 +232,17 @@ func TestDeleteFIlmById(t *testing.T) {
 			Context: []gin.Param{{Key: "id", Value: "1"}},
 		},
 	}
-	DB.Create(&Language{ID: 1, Name: "English"})
+	db.Create(&Language{ID: 1, Name: "English"})
 	for _, want := range wants {
-		DB.Exec("TRUNCATE TABLE film  RESTART IDENTITY CASCADE;")
+		db.Exec("TRUNCATE TABLE film  RESTART IDENTITY CASCADE;")
 		if want.Input != nil {
-			DB.Create(&want.Input)
+			db.Create(&want.Input)
 		}
 		t.Run(want.Title, func(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			got, err := DeleteFilmById(ctx)
+			got, err := DeleteFilmById(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -270,5 +253,5 @@ func TestDeleteFIlmById(t *testing.T) {
 			}
 		})
 	}
-	DB.Delete(&Language{ID: 1, Name: "English"})
+	db.Delete(&Language{ID: 1, Name: "English"})
 }

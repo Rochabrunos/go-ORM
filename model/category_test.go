@@ -6,42 +6,22 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 func init() {
-	var err error
-	var dbUser string = os.Getenv("TEST_DB_USER")
-	var dbPass string = os.Getenv("TEST_DB_PASSWORD")
-	var dbName string = os.Getenv("TEST_DB_NAME")
-	var dbHost string = os.Getenv("TEST_DB_HOST")
-
-	fmt.Println("Initilizing database connection")
-
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5433 sslmode=disable Timezone=America/Sao_Paulo", dbHost, dbUser, dbPass, dbName)
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger:                                   logger.Default.LogMode(logger.Silent),
-		DisableForeignKeyConstraintWhenMigrating: true,
-	})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Connection was successful")
-
+	var db = GetDBTestConnection()
 	fmt.Print("Migrating the Model Category to the Test Database\n")
-	if err := DB.AutoMigrate(&Category{}); err != nil {
+	if err := db.AutoMigrate(&Category{}); err != nil {
 		fmt.Errorf("Fail to migrate the model Category: %v\n", err)
 	}
 	fmt.Printf("Migration has been successful\n")
 }
 
 func TestGetCategoryById(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Category]{
 		{Title: "Should return an error when called with empty database",
 			Input:   []Category{},
@@ -60,13 +40,13 @@ func TestGetCategoryById(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
+			db.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 
 			for i := range want.Input {
-				DB.Create(&want.Input[i])
+				db.Create(&want.Input[i])
 			}
 
-			lang, err := GetCategoryById(ctx)
+			lang, err := GetCategoryById(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -82,6 +62,7 @@ func TestGetCategoryById(t *testing.T) {
 }
 
 func TestGetAllCategories(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Category]{
 		{Title: "Shouldn't return error when called (empty database)",
 			Context: []gin.Param{{Key: "p", Value: "0"}}},
@@ -94,13 +75,13 @@ func TestGetAllCategories(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
+			db.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 
 			for i := range want.Input {
-				DB.Create(&want.Input[i])
+				db.Create(&want.Input[i])
 			}
 
-			langs, err := GetAllCategories(ctx)
+			langs, err := GetAllCategories(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -116,6 +97,7 @@ func TestGetAllCategories(t *testing.T) {
 }
 
 func TestCreateNewCategory(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Category]{
 		{Title: "Should return an error when called with body empty",
 			Error: "invalid request"},
@@ -126,8 +108,8 @@ func TestCreateNewCategory(t *testing.T) {
 			Input: []Category{{Name: "Action"}}},
 	}
 
-	DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
-	DB.Create(&Category{Name: "Drama"})
+	db.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
+	db.Create(&Category{Name: "Drama"})
 
 	for _, want := range wants {
 		t.Run(want.Title, func(t *testing.T) {
@@ -141,7 +123,7 @@ func TestCreateNewCategory(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := CreateNewCategory(ctx)
+			got, err := CreateNewCategory(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -156,6 +138,7 @@ func TestCreateNewCategory(t *testing.T) {
 }
 
 func TestUpdateCategory(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Category]{
 		{Title: "Should return an error when called with a non-existent ID",
 			Context: []gin.Param{{Key: "id", Value: "2"}},
@@ -177,8 +160,8 @@ func TestUpdateCategory(t *testing.T) {
 	}
 
 	for _, want := range wants {
-		DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
-		DB.Create(&Category{Name: "Drama"})
+		db.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
+		db.Create(&Category{Name: "Drama"})
 		t.Run(want.Title, func(t *testing.T) {
 
 			ctx := MockContext()
@@ -191,7 +174,7 @@ func TestUpdateCategory(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := UpdateCategoryById(ctx)
+			got, err := UpdateCategoryById(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -205,6 +188,7 @@ func TestUpdateCategory(t *testing.T) {
 }
 
 func TestDeleteCategoryById(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Category]{
 		{Title: "Should return an error when called with an invalid ID",
 			Context: []gin.Param{{Key: "id", Value: "a"}},
@@ -220,15 +204,15 @@ func TestDeleteCategoryById(t *testing.T) {
 		},
 	}
 	for _, want := range wants {
-		DB.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
+		db.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 		if want.Input != nil {
-			DB.Create(&want.Input)
+			db.Create(&want.Input)
 		}
 		t.Run(want.Title, func(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			got, err := DeleteCategoryById(ctx)
+			got, err := DeleteCategoryById(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())

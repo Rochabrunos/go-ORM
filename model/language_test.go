@@ -6,43 +6,22 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-var DB *gorm.DB
-
 func init() {
-	var err error
-	var dbUser string = os.Getenv("TEST_DB_USER")
-	var dbPass string = os.Getenv("TEST_DB_PASSWORD")
-	var dbName string = os.Getenv("TEST_DB_NAME")
-	var dbHost string = os.Getenv("TEST_DB_HOST")
-
-	fmt.Println("Initilizing database connection")
-
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5433 sslmode=disable Timezone=America/Sao_Paulo", dbHost, dbUser, dbPass, dbName)
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger:                                   logger.Default.LogMode(logger.Silent),
-		DisableForeignKeyConstraintWhenMigrating: true,
-	})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Connection was successful")
+	var db = GetDBTestConnection()
 
 	fmt.Print("Migrating the Model Language to the Test Database\n")
-	if err := DB.AutoMigrate(&Language{}); err != nil {
+	if err := db.AutoMigrate(&Language{}); err != nil {
 		fmt.Errorf("Fail to migrate the model Language: %v\n", err)
 	}
 	fmt.Printf("Migration has been successful\n")
 }
 func TestGetLanguageById(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Language]{
 		{Title: "Should return an error when called with empty database",
 			Input:   []Language{},
@@ -61,13 +40,13 @@ func TestGetLanguageById(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
+			db.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
 
 			for i := range want.Input {
-				DB.Create(&want.Input[i])
+				db.Create(&want.Input[i])
 			}
 
-			lang, err := GetLanguageById(ctx, DB)
+			lang, err := GetLanguageById(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -83,6 +62,7 @@ func TestGetLanguageById(t *testing.T) {
 }
 
 func TestGetAllLanguages(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Language]{
 		{Title: "Shouldn't return error when called (empty database)",
 			Context: []gin.Param{{Key: "p", Value: "0"}}},
@@ -95,13 +75,13 @@ func TestGetAllLanguages(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
+			db.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
 
 			for i := range want.Input {
-				DB.Create(&Language{Name: want.Input[i].Name})
+				db.Create(&Language{Name: want.Input[i].Name})
 			}
 
-			langs, err := GetAllLanguages(ctx, DB)
+			langs, err := GetAllLanguages(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -117,6 +97,7 @@ func TestGetAllLanguages(t *testing.T) {
 }
 
 func TestCreateNewLanguage(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Language]{
 		{Title: "Should return an error when called with body empty",
 			Error: "invalid request"},
@@ -127,8 +108,8 @@ func TestCreateNewLanguage(t *testing.T) {
 			Input: []Language{{Name: "Portuguese"}}},
 	}
 
-	DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
-	DB.Create(&Language{Name: "English"})
+	db.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
+	db.Create(&Language{Name: "English"})
 
 	for _, want := range wants {
 		t.Run(want.Title, func(t *testing.T) {
@@ -142,7 +123,7 @@ func TestCreateNewLanguage(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := CreateNewLanguage(ctx, DB)
+			got, err := CreateNewLanguage(ctx, db)
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
 			}
@@ -156,6 +137,7 @@ func TestCreateNewLanguage(t *testing.T) {
 }
 
 func TestUpdateLanguage(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Language]{
 		{Title: "Should return an error when called with a non-existent ID",
 			Context: []gin.Param{{Key: "id", Value: "2"}},
@@ -177,8 +159,8 @@ func TestUpdateLanguage(t *testing.T) {
 	}
 
 	for _, want := range wants {
-		DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
-		DB.Create(&Language{Name: "English"})
+		db.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
+		db.Create(&Language{Name: "English"})
 		t.Run(want.Title, func(t *testing.T) {
 
 			ctx := MockContext()
@@ -191,7 +173,7 @@ func TestUpdateLanguage(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := UpdateLanguageById(ctx, DB)
+			got, err := UpdateLanguageById(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
@@ -205,6 +187,7 @@ func TestUpdateLanguage(t *testing.T) {
 }
 
 func TestDeleteLanguageById(t *testing.T) {
+	var db = GetDBTestConnection()
 	var wants = []Case[Language]{
 		{Title: "Should return an error when called with an invalid ID",
 			Context: []gin.Param{{Key: "id", Value: "a"}},
@@ -220,15 +203,15 @@ func TestDeleteLanguageById(t *testing.T) {
 		},
 	}
 	for _, want := range wants {
-		DB.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
+		db.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
 		if want.Input != nil {
-			DB.Create(&want.Input)
+			db.Create(&want.Input)
 		}
 		t.Run(want.Title, func(t *testing.T) {
 			ctx := MockContext()
 			ctx.Params = want.Context
 
-			got, err := DeleteLanguageById(ctx, DB)
+			got, err := DeleteLanguageById(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
