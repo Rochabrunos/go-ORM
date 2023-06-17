@@ -15,18 +15,8 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-<<<<<<< HEAD
-type Case struct {
-	Title   string
-	Input   []Language
-	Error   string
-	Context []gin.Param
-}
-
 var DB *gorm.DB
 
-=======
->>>>>>> caa717724aed354e674ae8e21ea91d60755186a0
 func init() {
 	var err error
 	var dbUser string = os.Getenv("TEST_DB_USER")
