@@ -19,62 +19,58 @@ func (Category) TableName() string {
 	return "category"
 }
 
-func GetCategoryById(c *gin.Context, db *gorm.DB) (*Category, error) {
-	var category Category
-	id, err := strconv.Atoi(c.Param("id"))
+func (c *Category) GetCategoryById(ctx *gin.Context, db *gorm.DB) error {
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		return nil, errors.New("invalid id, make sure to pass a number")
+		return errors.New("invalid id, make sure to pass a number")
 	}
-	category.ID = uint(id)
+	c.ID = uint(id)
 
-	if result := db.First(&category); result.Error != nil {
-		return nil, result.Error
+	if result := db.First(c); result.Error != nil {
+		return result.Error
 	}
-	return &category, nil
+	return nil
 }
 
-func GetAllCategories(c *gin.Context, db *gorm.DB) (*[]Category, error) {
-	var category []Category
-	page, _ := strconv.Atoi(c.DefaultQuery("p", "0"))
+// func (c *Category) GetAllCategories(ctx *gin.Context, db *gorm.DB) error {
+// 	page, _ := strconv.Atoi(ctx.DefaultQuery("p", "0"))
 
-	if result := db.Offset(page * 10).Limit(10).Find(&category); result.Error != nil {
-		return nil, result.Error
+// 	if result := db.Offset(page * 10).Limit(10).Find(&categories); result.Error != nil {
+// 		return result.Error
+// 	}
+// 	return nil
+// }
+
+func (c *Category) CreateNewCategory(ctx *gin.Context, db *gorm.DB) error {
+	if err := ctx.ShouldBindJSON(c); err != nil {
+		return err
 	}
-	return &category, nil
+	if result := db.Create(c); result.Error != nil {
+		return result.Error
+	}
+	return nil
 }
-
-func CreateNewCategory(c *gin.Context, db *gorm.DB) (*Category, error) {
-	var category Category
-	if err := c.ShouldBindJSON(&category); err != nil {
-		return nil, err
-	}
-	if result := db.Create(&category); result.Error != nil {
-		return nil, result.Error
-	}
-	return &category, nil
-}
-
-func UpdateCategoryById(c *gin.Context, db *gorm.DB) (*Category, error) {
-	category, err := GetCategoryById(c, db)
+func (c *Category) UpdateCategoryById(ctx *gin.Context, db *gorm.DB) error {
+	err := c.GetCategoryById(ctx, db)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if err := c.ShouldBindJSON(category); err != nil {
-		return nil, err
+	if err := ctx.ShouldBindJSON(c); err != nil {
+		return err
 	}
-	if result := db.Save(category); result.Error != nil {
-		return nil, result.Error
+	if result := db.Save(c); result.Error != nil {
+		return result.Error
 	}
-	return category, nil
+	return nil
 }
 
-func DeleteCategoryById(c *gin.Context, db *gorm.DB) (*Category, error) {
-	obj, err := GetCategoryById(c, db)
+func (c *Category) DeleteCategoryById(ctx *gin.Context, db *gorm.DB) error {
+	err := c.GetCategoryById(ctx, db)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if result := db.Delete(obj); result.Error != nil {
-		return nil, result.Error
+	if result := db.Delete(c); result.Error != nil {
+		return result.Error
 	}
-	return obj, nil
+	return nil
 }

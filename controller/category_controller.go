@@ -8,52 +8,54 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var handler = Handler{}.New(&model.Category{})
+
 func GetCategByIdEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	obj, err := model.GetCategoryById(c, connDB)
+	err := handler.Model.GetCategoryById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, obj)
+	c.JSON(http.StatusOK, handler.Model)
 }
 
-func GetAllCategsEndpoint(c *gin.Context) {
-	connDB := service.GetDBConnection()
-	obj, err := model.GetAllCategories(c, connDB)
-	if err != nil {
-		SendError(c, http.StatusBadRequest, err)
-		return
-	}
-	c.JSON(http.StatusOK, obj)
-}
+// func GetAllCategsEndpoint(c *gin.Context) {
+// 	connDB := service.GetDBConnection()
+// 	err := handler.Model.GetAllCategories(c, connDB)
+// 	if err != nil {
+// 		SendError(c, http.StatusBadRequest, err)
+// 		return
+// 	}
+// 	c.JSON(http.StatusOK, handler.Model)
+// }
 
 func CreateCategEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	obj, err := model.CreateNewCategory(c, connDB)
+	err := handler.Model.CreateNewCategory(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, obj)
+	c.JSON(http.StatusOK, handler.Model)
 }
 
 func ModifyCategEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	obj, err := model.UpdateCategoryById(c, connDB)
+	err := handler.Model.UpdateCategoryById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, obj)
+	c.JSON(http.StatusOK, handler.Model)
 }
 
 func DeleteCategEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	obj, err := model.DeleteCategoryById(c, connDB)
+	err := handler.Model.DeleteCategoryById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, obj)
+	c.JSON(http.StatusOK, handler.Model)
 }

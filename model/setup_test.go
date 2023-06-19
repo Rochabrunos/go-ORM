@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var connection *gorm.DB
+var connection *gorm.DB = connectDB()
 
 type Case[T any] struct {
 	Title   string
@@ -29,8 +29,7 @@ func MockContext() *gin.Context {
 	return c
 }
 
-func Init() {
-	var err error
+func connectDB() *gorm.DB {
 	var dbUser string = os.Getenv("TEST_DB_USER")
 	var dbPass string = os.Getenv("TEST_DB_PASSWORD")
 	var dbName string = os.Getenv("TEST_DB_NAME")
@@ -39,7 +38,7 @@ func Init() {
 	fmt.Println("Initilizing database connection for tests")
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5433 sslmode=disable Timezone=America/Sao_Paulo", dbHost, dbUser, dbPass, dbName)
-	connection, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+	connection, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger:                                   logger.Default.LogMode(logger.Silent),
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
@@ -48,7 +47,9 @@ func Init() {
 		panic(err)
 	}
 	fmt.Println("Connection was successful")
+	return connection
 }
+
 func GetDBTestConnection() *gorm.DB {
 	sqlDB, err := connection.DB()
 	if err != nil {
