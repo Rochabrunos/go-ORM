@@ -5,20 +5,20 @@ import (
 	"gorm.io/gorm"
 )
 
-type Handler struct {
+type DAO struct {
 	Model Model
 }
 
 type Model interface {
-	GetCategoryById(*gin.Context, *gorm.DB) error
-	// GetAllCategories(*gin.Context, *gorm.DB) error
-	CreateNewCategory(*gin.Context, *gorm.DB) error
-	UpdateCategoryById(*gin.Context, *gorm.DB) error
-	DeleteCategoryById(*gin.Context, *gorm.DB) error
+	GetById(*gin.Context, *gorm.DB) error
+	GetAll(*gin.Context, *gorm.DB) error
+	CreateNew(*gin.Context, *gorm.DB) error
+	UpdateById(*gin.Context, *gorm.DB) error
+	DeleteById(*gin.Context, *gorm.DB) error
 }
 
-func (Handler) New(c Model) Handler {
-	h := Handler{
+func (DAO) New(c Model) DAO {
+	h := DAO{
 		Model: c,
 	}
 

@@ -19,11 +19,11 @@ func main() {
 
 	category := r.Group("/categories")
 	{
-		category.GET("/:id", controllers.GetCategByIdEndpoint)
-		// category.GET("", controllers.GetAllCategsEndpoint)
-		category.POST("", controllers.CreateCategEndpoint)
-		category.PUT("/:id", controllers.ModifyCategEndpoint)
-		category.DELETE("/:id", controllers.DeleteCategEndpoint)
+		category.GET("/:id", controllers.GetByIdEndpoint)
+		category.GET("", controllers.GetAllEndpoint)
+		category.POST("", controllers.CreateEndpoint)
+		category.PUT("/:id", controllers.ModifyEndpoint)
+		category.DELETE("/:id", controllers.DeleteEndpoint)
 	}
 
 	film := r.Group("/films")

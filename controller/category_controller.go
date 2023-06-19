@@ -8,54 +8,54 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var handler = Handler{}.New(&model.Category{})
+var dao = DAO{}.New(&model.CategoryModel{})
 
-func GetCategByIdEndpoint(c *gin.Context) {
+func GetByIdEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	err := handler.Model.GetCategoryById(c, connDB)
+	err := dao.Model.GetById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, handler.Model)
+	c.JSON(http.StatusOK, dao.Model)
 }
 
-// func GetAllCategsEndpoint(c *gin.Context) {
-// 	connDB := service.GetDBConnection()
-// 	err := handler.Model.GetAllCategories(c, connDB)
-// 	if err != nil {
-// 		SendError(c, http.StatusBadRequest, err)
-// 		return
-// 	}
-// 	c.JSON(http.StatusOK, handler.Model)
-// }
-
-func CreateCategEndpoint(c *gin.Context) {
+func GetAllEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	err := handler.Model.CreateNewCategory(c, connDB)
+	err := dao.Model.GetAll(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, handler.Model)
+	c.JSON(http.StatusOK, dao.Model)
 }
 
-func ModifyCategEndpoint(c *gin.Context) {
+func CreateEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	err := handler.Model.UpdateCategoryById(c, connDB)
+	err := dao.Model.CreateNew(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, handler.Model)
+	c.JSON(http.StatusOK, dao.Model)
 }
 
-func DeleteCategEndpoint(c *gin.Context) {
+func ModifyEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	err := handler.Model.DeleteCategoryById(c, connDB)
+	err := dao.Model.UpdateById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, handler.Model)
+	c.JSON(http.StatusOK, dao.Model)
+}
+
+func DeleteEndpoint(c *gin.Context) {
+	connDB := service.GetDBConnection()
+	err := dao.Model.DeleteById(c, connDB)
+	if err != nil {
+		SendError(c, http.StatusBadRequest, err)
+		return
+	}
+	c.JSON(http.StatusOK, dao.Model)
 }

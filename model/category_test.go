@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -37,8 +38,8 @@ func TestGetCategoryById(t *testing.T) {
 	}
 	for _, want := range wants {
 		t.Run(want.Title, func(t *testing.T) {
-			ctx := MockContext()
-			ctx.Params = want.Context
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
 
 			db.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 
@@ -46,14 +47,14 @@ func TestGetCategoryById(t *testing.T) {
 				db.Create(&want.Input[i])
 			}
 
-			lang, err := GetCategoryById(ctx, db)
+			categor, err := GetById(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
 			}
 			for _, wantCategory := range want.Input {
-				if lang != nil && lang.Name != wantCategory.Name {
-					t.Errorf("The return fail to meet the expectation, want: %v, got: %v", wantCategory, lang)
+				if categor != nil && categor.Name != wantCategory.Name {
+					t.Errorf("The return fail to meet the expectation, want: %v, got: %v", wantCategory, categor)
 				}
 			}
 
@@ -81,14 +82,14 @@ func TestGetAllCategories(t *testing.T) {
 				db.Create(&want.Input[i])
 			}
 
-			langs, err := GetAllCategories(ctx, db)
+			categories, err := GetAll(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())
 			}
 			for index, wantCategory := range want.Input {
-				if langs != nil && (*langs)[index].Name != wantCategory.Name {
-					t.Errorf("The return fail to meet the expectation, want: %v, got: %v", wantCategory, langs)
+				if categories != nil && (*categories)[index].Name != wantCategory.Name {
+					t.Errorf("The return fail to meet the expectation, want: %v, got: %v", wantCategory, categories)
 				}
 			}
 
@@ -123,7 +124,7 @@ func TestCreateNewCategory(t *testing.T) {
 				ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 			}
 
-			got, err := CreateNewCategory(ctx, db)
+			got, err := CreateNew(ctx, db)
 
 			if err != nil && err.Error() != want.Error {
 				t.Errorf("The error fail to meet the expectation, want: %s, got: %s", want.Error, err.Error())

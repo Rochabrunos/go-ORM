@@ -7,23 +7,25 @@ import (
 	"gorm.io/gorm"
 )
 
-type MockedCategory struct {
+type MockedCategoryModel struct {
 	ID   int
 	Name string
 }
 
-func (c MockedCategory) GetCategoryById(*gin.Context, *gorm.DB) error {
-	return errors.New("Mocked error")
+var MockedErrorMessage = "mocked error"
+
+func (c MockedCategoryModel) GetById(*gin.Context, *gorm.DB) error {
+	return errors.New(MockedErrorMessage)
 }
-func (c MockedCategory) GetAllCategories(*gin.Context, *gorm.DB) error {
-	return errors.New("Mocked error")
+func (c MockedCategoryModel) GetAll(*gin.Context, *gorm.DB) error {
+	return errors.New(MockedErrorMessage)
 }
-func (c MockedCategory) CreateNewCategory(*gin.Context, *gorm.DB) error {
-	return errors.New("Mocked error")
+func (c MockedCategoryModel) CreateNew(*gin.Context, *gorm.DB) error {
+	return errors.New(MockedErrorMessage)
 }
-func (c MockedCategory) UpdateCategoryById(*gin.Context, *gorm.DB) error {
-	return errors.New("Mocked error")
+func (c MockedCategoryModel) UpdateById(*gin.Context, *gorm.DB) error {
+	return errors.New(MockedErrorMessage)
 }
-func (c MockedCategory) DeleteCategoryById(*gin.Context, *gorm.DB) error {
-	return errors.New("Mocked error")
+func (c MockedCategoryModel) DeleteById(*gin.Context, *gorm.DB) error {
+	return errors.New(MockedErrorMessage)
 }
