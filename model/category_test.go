@@ -36,10 +36,11 @@ func TestGetAll(t *testing.T) {
 	//Following the logic of the function, the only way to return an error is if the db.Find function fails.
 	//This test mocks a failure in order to verify the correctness of the entire function in the event of an error
 	t.Run("Must return an error if the database fails to retrieve objects", func(t *testing.T) {
+		var model = &CategoryModel{}
+		var want = errors.New(mocks.MockedErrorMessage)
+		var ctx = MockContext()
 		var mock sqlmock.Sqlmock
 		var conn *sql.DB
-		var model = &CategoryModel{}
-		want := errors.New(mocks.MockedErrorMessage)
 
 		conn, mock, err := sqlmock.New()
 		assert.Nil(t, err)
@@ -56,23 +57,26 @@ func TestGetAll(t *testing.T) {
 		assert.NotNil(t, db)
 
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"category\" LIMIT 10")).WithArgs().WillReturnError(want)
-		ctx := MockContext()
 
 		err = model.GetAll(ctx, db)
+
 		assert.Error(t, err, want)
 	})
 
 	t.Run("Must return the categories store in the database", func(t *testing.T) {
-		db := GetDBTestConnection()
+		var model = &CategoryModel{}
+		var db = GetDBTestConnection()
 		db.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 		db.Create([]Category{{Name: "Action"}, {Name: "Drama"}})
 
 		ctx := MockContext()
-		result := &CategoryModel{}
-		err := result.GetAll(ctx, db)
+
+		err := model.GetAll(ctx, db)
+
 		assert.NoError(t, err)
-		assert.NotNil(t, result.Categories)
-		assert.Equal(t, 2, len(result.Categories))
+		assert.NotNil(t, model.Categories)
+		assert.Equal(t, 2, len(model.Categories))
+
 		db.Delete(&Category{ID: 1})
 		db.Delete(&Category{ID: 2})
 	})
@@ -86,6 +90,7 @@ func TestCreateNew(t *testing.T) {
 		ctx := MockContext()
 		ctx.Request = &http.Request{Header: http.Header{}}
 		ctx.Request.Header.Set("content-type", "application/json")
+
 		data := map[string]any{"Mock": "mocked name"}
 		jsonBytes, _ := json.Marshal(data)
 		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
@@ -95,11 +100,10 @@ func TestCreateNew(t *testing.T) {
 	})
 
 	t.Run("Must return an error if it's not possible to create the new category", func(t *testing.T) {
-		var mock sqlmock.Sqlmock
-		var conn *sql.DB
 		var model = &CategoryModel{}
 		var want = errors.New(mocks.MockedErrorMessage)
-
+		var mock sqlmock.Sqlmock
+		var conn *sql.DB
 		conn, mock, err := sqlmock.New()
 		assert.Nil(t, err)
 		defer conn.Close()
@@ -119,13 +123,17 @@ func TestCreateNew(t *testing.T) {
 		ctx := MockContext()
 		ctx.Request = &http.Request{Header: http.Header{}}
 		ctx.Request.Header.Set("content-type", "application/json")
+
 		data := map[string]any{"Name": "Action"}
 		jsonBytes, _ := json.Marshal(data)
 		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
+
 		mock.ExpectBegin()
 		mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "category" ("name","last_update") VALUES ($1,$2) RETURNING "category_id"`)).WithArgs("Action", time.Now().Local()).WillReturnError(want)
 		mock.ExpectRollback()
+
 		err = model.CreateNew(ctx, db)
+
 		assert.ErrorIs(t, err, want)
 	})
 
