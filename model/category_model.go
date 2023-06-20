@@ -11,7 +11,7 @@ import (
 
 type Category struct {
 	ID         uint      `json:",omitempty" gorm:"primaryKey;column:category_id"`
-	Name       string    `gorm:"size:100"`
+	Name       string    `gorm:"size:100" binding:"required"`
 	LastUpdate time.Time `json:",omitempty" gorm:"autoUpdateTime"`
 }
 
@@ -51,7 +51,8 @@ func (c *CategoryModel) GetAll(ctx *gin.Context, db *gorm.DB) error {
 
 func (c *CategoryModel) CreateNew(ctx *gin.Context, db *gorm.DB) error {
 	var category Category
-	if err := ctx.ShouldBindJSON(category); err != nil {
+
+	if err := ctx.ShouldBindJSON(&category); err != nil {
 		return err
 	}
 	if result := db.Create(&category); result.Error != nil {
