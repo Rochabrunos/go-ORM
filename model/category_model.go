@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"gorm.io/gorm"
 )
 
@@ -29,9 +30,7 @@ func (c *CategoryModel) GetById(ctx *gin.Context, db *gorm.DB) error {
 	if err != nil {
 		return errors.New("invalid id, make sure to pass a number")
 	}
-	category.ID = uint(id)
-
-	if result := db.First(&category); result.Error != nil {
+	if result := db.First(&category, uint(id)); result.Error != nil {
 		return result.Error
 	}
 	c.Categories = []Category{category}
@@ -62,28 +61,29 @@ func (c *CategoryModel) CreateNew(ctx *gin.Context, db *gorm.DB) error {
 	return nil
 }
 func (c *CategoryModel) UpdateById(ctx *gin.Context, db *gorm.DB) error {
-	var category Category
 	err := c.GetById(ctx, db)
 	if err != nil {
 		return err
 	}
-	if err := ctx.ShouldBindJSON(category); err != nil {
+	category := Category{ID: c.Categories[0].ID}
+	if err := ctx.ShouldBindWith(&category, binding.JSON); err != nil {
 		return err
 	}
 	if result := db.Save(&category); result.Error != nil {
 		return result.Error
 	}
-	c.Categories = []Category{category}
+	c.Categories[0] = category
 	return nil
 }
 
 func (c *CategoryModel) DeleteById(ctx *gin.Context, db *gorm.DB) error {
 	var category Category
 	err := c.GetById(ctx, db)
-	category = c.Categories[0]
 	if err != nil {
 		return err
 	}
+	category = c.Categories[0]
+
 	if result := db.Delete(&category); result.Error != nil {
 		return result.Error
 	}
