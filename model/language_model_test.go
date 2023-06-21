@@ -3,17 +3,15 @@ package model
 import (
 	"bytes"
 	"database/sql"
-	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	mocks "orm-golang/model/mock"
 	"regexp"
 	"testing"
 	"time"
-
-	mocks "orm-golang/model/mock"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -22,27 +20,19 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-type AnyTime struct{}
-
-func (a AnyTime) Match(v driver.Value) bool {
-	_, ok := v.(time.Time)
-	return ok
-}
-
 func init() {
 	var db = GetDBTestConnection()
 
-	fmt.Print("Migrating the Model Category to the Test Database\n")
-	if err := db.AutoMigrate(&Category{}); err != nil {
-		fmt.Errorf("Fail to migrate the model Category: %v\n", err)
+	fmt.Print("Migrating the Model Language to the Test Database\n")
+	if err := db.AutoMigrate(&Language{}); err != nil {
+		fmt.Errorf("Fail to migrate the model Language: %v\n", err)
 	}
-	db.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
 	fmt.Printf("Migration has been successful\n")
 }
 
-func TestCategoryGetById(t *testing.T) {
+func TestLanguageGetById(t *testing.T) {
 	t.Run("Must return an error when called with an invalid ID", func(t *testing.T) {
-		var model = &CategoryModel{}
+		var model = &LanguageModel{}
 		var db = GetDBTestConnection()
 		var ctx = MockContext()
 		ctx.AddParam("id", "A")
@@ -53,7 +43,7 @@ func TestCategoryGetById(t *testing.T) {
 	})
 
 	t.Run("Must return an error if database fails", func(t *testing.T) {
-		var model = &CategoryModel{}
+		var model = &LanguageModel{}
 		var ctx = MockContext()
 		var db *gorm.DB
 		var expectedError = errors.New(mocks.MockedErrorMessage)
@@ -75,7 +65,7 @@ func TestCategoryGetById(t *testing.T) {
 		assert.NotNil(t, db)
 
 		mock.
-			ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "category" WHERE "category"."category_id" = $1 ORDER BY "category"."category_id" LIMIT 1`)).
+			ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "language" WHERE "language"."language_id" = $1 ORDER BY "language"."language_id" LIMIT 1`)).
 			WithArgs(1).WillReturnError(expectedError)
 
 		ctx.AddParam("id", "1")
@@ -85,30 +75,28 @@ func TestCategoryGetById(t *testing.T) {
 		assert.ErrorIs(t, err, expectedError)
 	})
 
-	t.Run("Must return a category with the specified ID", func(t *testing.T) {
-		var model = &CategoryModel{}
+	t.Run("Must return a language with the specified ID", func(t *testing.T) {
+		var model = &LanguageModel{}
 		var db = GetDBTestConnection()
 		var ctx = MockContext()
 		ctx.AddParam("id", "1")
 
-		db.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE")
-		db.Create(&Category{Name: "Action"})
+		db.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE")
+		db.Create(&Language{Name: "English"})
 
 		err := model.GetById(ctx, db)
 
 		assert.NoError(t, err)
-		assert.Equal(t, uint(1), model.Categories[0].ID)
+		assert.Equal(t, uint(1), model.Languages[0].ID)
 
-		db.Delete(&Category{ID: 1})
+		db.Delete(&Language{ID: 1})
 	})
 }
 
-func TestGetAllCategories(t *testing.T) {
+func TestGetAllLanguages(t *testing.T) {
 
-	//Following the logic of the function, the only way to return an error is if the db.Find function fails.
-	//This test mocks a failure in order to verify the correctness of the entire function in the event of an error
 	t.Run("Must return an error if the database fails to retrieve objects", func(t *testing.T) {
-		var model = &CategoryModel{}
+		var model = &LanguageModel{}
 		var expectedError = errors.New(mocks.MockedErrorMessage)
 		var ctx = MockContext()
 		var mock sqlmock.Sqlmock
@@ -128,34 +116,34 @@ func TestGetAllCategories(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, db)
 
-		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"category\" LIMIT 10")).WithArgs().WillReturnError(expectedError)
+		mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM \"language\" LIMIT 10")).WithArgs().WillReturnError(expectedError)
 
 		err = model.GetAll(ctx, db)
 
 		assert.Error(t, err, expectedError)
 	})
 
-	t.Run("Must return the categories store in the database", func(t *testing.T) {
-		var model = &CategoryModel{}
+	t.Run("Must return the languages store in the database", func(t *testing.T) {
+		var model = &LanguageModel{}
 		var ctx = MockContext()
 		var db = GetDBTestConnection()
-		db.Exec("TRUNCATE TABLE category RESTART IDENTITY CASCADE;")
-		db.Create([]Category{{Name: "Action"}, {Name: "Drama"}})
+		db.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE;")
+		db.Create([]Language{{Name: "English"}, {Name: "Spanish"}})
 
 		err := model.GetAll(ctx, db)
 
 		assert.NoError(t, err)
-		assert.NotNil(t, model.Categories)
-		assert.Equal(t, 2, len(model.Categories))
+		assert.NotNil(t, model.Languages)
+		assert.Equal(t, 2, len(model.Languages))
 
-		db.Delete(&Category{ID: 1})
-		db.Delete(&Category{ID: 2})
+		db.Delete(&Language{ID: 1})
+		db.Delete(&Language{ID: 2})
 	})
 }
 
-func TestCreateNewCategory(t *testing.T) {
+func TestCreateNewLanguage(t *testing.T) {
 	t.Run("Must return an error if called with invalid data", func(t *testing.T) {
-		var model = &CategoryModel{}
+		var model = &LanguageModel{}
 		var ctx = MockContext()
 		var db = GetDBTestConnection()
 
@@ -171,8 +159,8 @@ func TestCreateNewCategory(t *testing.T) {
 		assert.ErrorContains(t, err, "Error:Field validation for")
 	})
 
-	t.Run("Must return an error if it's not possible to create the new category", func(t *testing.T) {
-		var model = &CategoryModel{}
+	t.Run("Must return an error if it's not possible to create the new language", func(t *testing.T) {
+		var model = &LanguageModel{}
 		var expectedError = errors.New(mocks.MockedErrorMessage)
 		var mock sqlmock.Sqlmock
 		var conn *sql.DB
@@ -196,12 +184,12 @@ func TestCreateNewCategory(t *testing.T) {
 		ctx.Request = &http.Request{Header: http.Header{}}
 		ctx.Request.Header.Set("content-type", "application/json")
 
-		data := map[string]any{"Name": "Action"}
+		data := map[string]any{"Name": "English"}
 		jsonBytes, _ := json.Marshal(data)
 		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 
 		mock.ExpectBegin()
-		mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "category" ("name","last_update") VALUES ($1,$2) RETURNING "category_id"`)).
+		mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "language" ("name","last_update") VALUES ($1,$2) RETURNING "language_id"`)).
 			WithArgs(data["Name"], AnyTime{}).
 			WillReturnError(expectedError)
 		mock.ExpectRollback()
@@ -211,27 +199,27 @@ func TestCreateNewCategory(t *testing.T) {
 		assert.ErrorIs(t, err, expectedError)
 	})
 
-	t.Run("Must return a new category when called", func(t *testing.T) {
-		var model = &CategoryModel{}
+	t.Run("Must return a new language when called", func(t *testing.T) {
+		var model = &LanguageModel{}
 		var db = GetDBTestConnection()
 		var ctx = MockContext()
 		ctx.Request = &http.Request{Header: http.Header{}}
 		ctx.Request.Header.Set("content-type", "application/json")
 
-		data := map[string]any{"Name": "Drama"}
+		data := map[string]any{"Name": "English"}
 		jsonBytes, _ := json.Marshal(data)
 		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 
 		err := model.CreateNew(ctx, db)
 
 		assert.NoError(t, err)
-		assert.Equal(t, data["Name"], model.Categories[0].Name)
+		assert.Equal(t, data["Name"], model.Languages[0].Name)
 	})
 }
 
-func TestUpdateCategoryById(t *testing.T) {
-	t.Run("Must return an error when the category doesn't exists", func(t *testing.T) {
-		var model = &CategoryModel{}
+func TestUpdateLanguageById(t *testing.T) {
+	t.Run("Must return an error when the language doesn't exists", func(t *testing.T) {
+		var model = &LanguageModel{}
 		var expectedError = errors.New(mocks.MockedErrorMessage)
 		var ctx = MockContext()
 		var db *gorm.DB
@@ -250,7 +238,9 @@ func TestUpdateCategoryById(t *testing.T) {
 		db, err = gorm.Open(dialect, &gorm.Config{})
 		assert.NoError(t, err)
 
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "category" WHERE "category"."category_id" = $1 ORDER BY "category"."category_id" LIMIT 1`)).WithArgs(1).WillReturnError(expectedError)
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "language" WHERE "language"."language_id" = $1 ORDER BY "language"."language_id" LIMIT 1`)).
+			WithArgs(1).
+			WillReturnError(expectedError)
 
 		ctx.AddParam("id", "1")
 
@@ -260,17 +250,17 @@ func TestUpdateCategoryById(t *testing.T) {
 	})
 
 	t.Run("Must return an error when called with invalid JSON body", func(t *testing.T) {
-		var model = &CategoryModel{}
+		var model = &LanguageModel{}
 		var db = GetDBTestConnection()
 		var ctx = MockContext()
 		ctx.AddParam("id", "1")
 		ctx.Request = &http.Request{}
 
-		db.Exec(`TRUNCATE TABLE category RESTART IDENTITY CASCADE`)
-		result := db.Create(&Category{Name: "Action"})
+		db.Exec(`TRUNCATE TABLE language RESTART IDENTITY CASCADE`)
+		result := db.Create(&Language{Name: "English"})
 		assert.NoError(t, result.Error)
 
-		data := map[string]string{"Drama": "Name"}
+		data := map[string]string{"English": "Name"}
 		jsonBytes, err := json.Marshal(data)
 		assert.NoError(t, err)
 		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
@@ -279,11 +269,11 @@ func TestUpdateCategoryById(t *testing.T) {
 
 		assert.ErrorContains(t, err, "Error:Field validation for 'Name'")
 
-		db.Delete(&Category{ID: 1})
+		db.Delete(&Language{ID: 1})
 	})
 
-	t.Run("Must return an error if the database fail to update the category", func(t *testing.T) {
-		var model = &CategoryModel{}
+	t.Run("Must return an error if the database fail to update the language", func(t *testing.T) {
+		var model = &LanguageModel{}
 		var expectedError = errors.New(mocks.MockedErrorMessage)
 		var ctx = MockContext()
 		var db *gorm.DB
@@ -303,22 +293,22 @@ func TestUpdateCategoryById(t *testing.T) {
 		assert.NoError(t, err)
 
 		ctx.Request = &http.Request{}
-		data := map[string]string{"Name": "Drama"}
+		data := map[string]string{"Name": "English"}
 		jsonBytes, err := json.Marshal(data)
 		assert.NoError(t, err)
 		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 		ctx.AddParam("id", "1")
 
-		mockedCategory := Category{ID: 1, Name: "Mocked Category Row", LastUpdate: time.Now()}
+		mockedLanguage := Language{ID: 1, Name: "Mocked Language Row", LastUpdate: time.Now()}
 		mock.
-			ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "category" WHERE "category"."category_id" = $1 ORDER BY "category"."category_id" LIMIT 1`)).
-			WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"category_id", "name", "last_update"}).
-			AddRow(mockedCategory.ID, mockedCategory.Name, mockedCategory.LastUpdate))
+			ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "language" WHERE "language"."language_id" = $1 ORDER BY "language"."language_id" LIMIT 1`)).
+			WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"language_id", "name", "last_update"}).
+			AddRow(mockedLanguage.ID, mockedLanguage.Name, mockedLanguage.LastUpdate))
 
 		mock.ExpectBegin()
 		mock.
-			ExpectExec(regexp.QuoteMeta(`UPDATE "category" SET "name"=$1,"last_update"=$2 WHERE "category_id" = $3`)).
-			WithArgs(data["Name"], AnyTime{}, mockedCategory.ID).
+			ExpectExec(regexp.QuoteMeta(`UPDATE "language" SET "name"=$1,"last_update"=$2 WHERE "language_id" = $3`)).
+			WithArgs(data["Name"], AnyTime{}, mockedLanguage.ID).
 			WillReturnError(expectedError)
 		mock.ExpectRollback()
 
@@ -327,17 +317,17 @@ func TestUpdateCategoryById(t *testing.T) {
 		assert.ErrorIs(t, expectedError, err)
 	})
 
-	t.Run("Should retrun a modified category", func(t *testing.T) {
-		var model = &CategoryModel{}
+	t.Run("Should retrun a modified language", func(t *testing.T) {
+		var model = &LanguageModel{}
 		var db = GetDBTestConnection()
 		var ctx = MockContext()
 		ctx.AddParam("id", "1")
 		ctx.Request = &http.Request{}
 
-		db.Exec(`TRUNCATE TABLE category RESTART IDENTITY CASCADE`)
-		db.Create(&Category{Name: "Drama"})
+		db.Exec(`TRUNCATE TABLE language RESTART IDENTITY CASCADE`)
+		db.Create(&Language{Name: "English"})
 
-		data := map[string]string{"Name": "Action"}
+		data := map[string]string{"Name": "Spanish"}
 		jsonData, err := json.Marshal(data)
 		assert.NoError(t, err)
 		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(jsonData))
@@ -345,16 +335,16 @@ func TestUpdateCategoryById(t *testing.T) {
 		err = model.UpdateById(ctx, db)
 
 		assert.NoError(t, err)
-		assert.Equal(t, data["Name"], model.Categories[0].Name)
+		assert.Equal(t, data["Name"], model.Languages[0].Name)
 
-		db.Delete(&Category{ID: 1})
+		db.Delete(&Language{ID: 1})
 	})
 }
 
-func TestDeleteCategoryById(t *testing.T) {
+func TestDeleteLanguageById(t *testing.T) {
 
-	t.Run("Must return an error if the Category with the id doesn't exist", func(t *testing.T) {
-		var model = &CategoryModel{}
+	t.Run("Must return an error if the Language with the id doesn't exist", func(t *testing.T) {
+		var model = &LanguageModel{}
 		var db = GetDBTestConnection()
 		var ctx = MockContext()
 		ctx.AddParam("id", "1")
@@ -364,8 +354,8 @@ func TestDeleteCategoryById(t *testing.T) {
 		assert.ErrorContains(t, err, "record not found")
 	})
 
-	t.Run("Must return an error if the database fail to delete the category", func(t *testing.T) {
-		var model = &CategoryModel{}
+	t.Run("Must return an error if the database fail to delete the language", func(t *testing.T) {
+		var model = &LanguageModel{}
 		var expectedError = errors.New(mocks.MockedErrorMessage)
 		var ctx = MockContext()
 		var db *gorm.DB
@@ -384,16 +374,16 @@ func TestDeleteCategoryById(t *testing.T) {
 		db, err = gorm.Open(dialect, &gorm.Config{})
 		assert.NoError(t, err)
 
-		mockedCategory := Category{ID: 1, Name: "Mocked Category Row", LastUpdate: time.Now()}
+		mockedLanguage := Language{ID: 1, Name: "Mocked Language Row", LastUpdate: time.Now()}
 		mock.
-			ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "category" WHERE "category"."category_id" = $1 ORDER BY "category"."category_id" LIMIT 1`)).
-			WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"category_id", "name", "last_update"}).
-			AddRow(mockedCategory.ID, mockedCategory.Name, mockedCategory.LastUpdate))
+			ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "language" WHERE "language"."language_id" = $1 ORDER BY "language"."language_id" LIMIT 1`)).
+			WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"language_id", "name", "last_update"}).
+			AddRow(mockedLanguage.ID, mockedLanguage.Name, mockedLanguage.LastUpdate))
 
 		mock.ExpectBegin()
 		mock.
-			ExpectExec(regexp.QuoteMeta(`DELETE FROM "category" WHERE "category"."category_id" = $1`)).
-			WithArgs(mockedCategory.ID).
+			ExpectExec(regexp.QuoteMeta(`DELETE FROM "language" WHERE "language"."language_id" = $1`)).
+			WithArgs(mockedLanguage.ID).
 			WillReturnError(expectedError)
 		mock.ExpectRollback()
 
@@ -404,20 +394,20 @@ func TestDeleteCategoryById(t *testing.T) {
 		assert.ErrorIs(t, expectedError, err)
 	})
 
-	t.Run("Must delete a category when called", func(t *testing.T) {
-		var model = &CategoryModel{}
+	t.Run("Must delete a language when called", func(t *testing.T) {
+		var model = &LanguageModel{}
 		var db = GetDBTestConnection()
 		var ctx = MockContext()
 		ctx.AddParam("id", "1")
 
-		db.Exec(`TRUNCATE TABLE category RESTART IDENTITY CASCADE`)
-		db.Create(&Category{Name: "Action"})
+		db.Exec(`TRUNCATE TABLE language RESTART IDENTITY CASCADE`)
+		db.Create(&Language{Name: "English"})
 		err := model.DeleteById(ctx, db)
 
 		assert.NoError(t, err)
-		assert.Equal(t, uint(1), model.Categories[0].ID)
-		assert.Equal(t, "Action", model.Categories[0].Name)
+		assert.Equal(t, uint(1), model.Languages[0].ID)
+		assert.Equal(t, "English", model.Languages[0].Name)
 
-		db.Delete(&Category{ID: 1})
+		db.Delete(&Language{ID: 1})
 	})
 }

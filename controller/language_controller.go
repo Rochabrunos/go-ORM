@@ -8,52 +8,54 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var daoLanguage = DAO{}.New(&model.LanguageModel{})
+
 func GetLangByIdEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	obj, err := model.GetLanguageById(c, connDB)
+	err := daoLanguage.Model.GetById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, obj)
+	c.JSON(http.StatusOK, daoLanguage.Model)
 }
 
 func GetAllLangsEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	obj, err := model.GetAllLanguages(c, connDB)
+	err := daoLanguage.Model.GetAll(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, obj)
+	c.JSON(http.StatusOK, daoLanguage.Model)
 }
 
 func CreateLangEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	obj, err := model.CreateNewLanguage(c, connDB)
+	err := daoLanguage.Model.CreateNew(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, obj)
+	c.JSON(http.StatusOK, daoLanguage.Model)
 }
 
 func ModifyLangEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	obj, err := model.UpdateLanguageById(c, connDB)
+	err := daoLanguage.Model.UpdateById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, obj)
+	c.JSON(http.StatusOK, daoLanguage.Model)
 }
 
 func DeleteLangEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
-	obj, err := model.DeleteLanguageById(c, connDB)
+	err := daoLanguage.Model.DeleteById(c, connDB)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, obj)
+	c.JSON(http.StatusOK, daoLanguage.Model)
 }

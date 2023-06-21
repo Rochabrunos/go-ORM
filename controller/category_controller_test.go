@@ -14,7 +14,7 @@ import (
 
 func TestGetByIdEndpoint(t *testing.T) {
 	t.Run("Test failing to get a category", func(t *testing.T) {
-		dao = DAO{}.New(&mocks.MockedCategoryModel{})
+		daoCategory = DAO{}.New(&mocks.MockedCategoryModel{})
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.AddParam("id", "1")
@@ -27,7 +27,7 @@ func TestGetByIdEndpoint(t *testing.T) {
 	})
 	t.Run("Test return a category as expect", func(t *testing.T) {
 		var result model.CategoryModel
-		dao = DAO{}.New(&model.CategoryModel{})
+		daoCategory = DAO{}.New(&model.CategoryModel{})
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.AddParam("id", "1")
@@ -42,7 +42,7 @@ func TestGetByIdEndpoint(t *testing.T) {
 
 func TestGetAllEndpoint(t *testing.T) {
 	t.Run("Test failing to get the categories", func(t *testing.T) {
-		dao = DAO{}.New(&mocks.MockedCategoryModel{})
+		daoCategory = DAO{}.New(&mocks.MockedCategoryModel{})
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		GetAllEndpoint(c)
@@ -54,7 +54,7 @@ func TestGetAllEndpoint(t *testing.T) {
 	})
 	t.Run("Test return the categories as expect", func(t *testing.T) {
 		var result model.CategoryModel
-		dao = DAO{}.New(&model.CategoryModel{})
+		daoCategory = DAO{}.New(&model.CategoryModel{})
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		GetAllEndpoint(c)

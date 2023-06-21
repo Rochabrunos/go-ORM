@@ -60,6 +60,7 @@ func (c *CategoryModel) CreateNew(ctx *gin.Context, db *gorm.DB) error {
 	c.Categories = []Category{category}
 	return nil
 }
+
 func (c *CategoryModel) UpdateById(ctx *gin.Context, db *gorm.DB) error {
 	err := c.GetById(ctx, db)
 	if err != nil {
