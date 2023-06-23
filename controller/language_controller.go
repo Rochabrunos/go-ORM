@@ -10,7 +10,7 @@ import (
 
 var daoLanguage = DAO{}.New(&model.LanguageModel{})
 
-func GetLangByIdEndpoint(c *gin.Context) {
+func GetByIdLanguageEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
 	err := daoLanguage.Model.GetById(c, connDB)
 	if err != nil {
@@ -20,7 +20,7 @@ func GetLangByIdEndpoint(c *gin.Context) {
 	c.JSON(http.StatusOK, daoLanguage.Model)
 }
 
-func GetAllLangsEndpoint(c *gin.Context) {
+func GetAllLanguageEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
 	err := daoLanguage.Model.GetAll(c, connDB)
 	if err != nil {
@@ -30,7 +30,7 @@ func GetAllLangsEndpoint(c *gin.Context) {
 	c.JSON(http.StatusOK, daoLanguage.Model)
 }
 
-func CreateLangEndpoint(c *gin.Context) {
+func CreateLanguageEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
 	err := daoLanguage.Model.CreateNew(c, connDB)
 	if err != nil {
@@ -40,7 +40,7 @@ func CreateLangEndpoint(c *gin.Context) {
 	c.JSON(http.StatusOK, daoLanguage.Model)
 }
 
-func ModifyLangEndpoint(c *gin.Context) {
+func ModifyLanguageEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
 	err := daoLanguage.Model.UpdateById(c, connDB)
 	if err != nil {
@@ -50,7 +50,7 @@ func ModifyLangEndpoint(c *gin.Context) {
 	c.JSON(http.StatusOK, daoLanguage.Model)
 }
 
-func DeleteLangEndpoint(c *gin.Context) {
+func DeleteLanguageEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
 	err := daoLanguage.Model.DeleteById(c, connDB)
 	if err != nil {

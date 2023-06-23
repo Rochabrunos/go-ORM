@@ -2,92 +2,104 @@ package model
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
+type SpecialFeatures []string
+
 type Film struct {
 	ID              uint   `json:",omitempty" gorm:"primaryKey;column:film_id"`
-	Title           string `gorm:"size:255"`
-	Description     string
-	ReleaseYear     string
+	Title           string `gorm:"size:255" binding:"required"`
+	Description     string `binding:"required"`
+	ReleaseYear     string `binding:"required"`
 	LanguageID      uint
-	Language        *Language `json:"-" gorm:"foreignKey:LanguageID"`
-	RentalDuration  uint      `gorm:"default:3"`
-	RentalRate      float32   `gorm:"default:4.99"`
-	Length          uint
-	ReplacementCost float32   `gorm:"default:19.99"`
-	Rating          string    `gorm:"default:G"`
-	LastUpdate      time.Time `gorm:"autoUpdateTime"`
-	SpecialFeatures []string  `gorm:"serializer:json"`
+	Language        Language       `gorm:"foreignKey:LanguageID" binding:"required"`
+	RentalDuration  uint           `gorm:"default:3" binding:"required"`
+	RentalRate      float32        `gorm:"default:4.99" binding:"required"`
+	Length          uint           `binding:"required"`
+	ReplacementCost float32        `gorm:"default:19.99" binding:"required"`
+	Rating          string         `gorm:"default:G" binding:"required"`
+	LastUpdate      time.Time      `gorm:"autoUpdateTime"`
+	SpecialFeatures pq.StringArray `gorm:"type:text[];serialize:json"`
 	FullText        string
+}
+
+type FilmModel struct {
+	Films []Film
 }
 
 func (Film) TableName() string {
 	return "film"
 }
 
-func GetFilmById(c *gin.Context, db *gorm.DB) (*Film, error) {
+func (f *FilmModel) GetById(c *gin.Context, db *gorm.DB) error {
 	var film Film
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return nil, errors.New("invalid id, make sure to pass a number")
+		return errors.New("invalid id, make sure to pass a number")
 	}
-
-	film.ID = uint(id)
-	if result := db.First(&film); result.Error != nil {
-		return nil, result.Error
+	if result := db.First(&film, uint(id)); result.Error != nil {
+		return result.Error
 	}
-	return &film, nil
+	f.Films = []Film{film}
+	return nil
 }
 
-func GetAllFilms(c *gin.Context, db *gorm.DB) (*[]Film, error) {
+func (f *FilmModel) GetAll(c *gin.Context, db *gorm.DB) error {
 	var films []Film
-
-	if result := db.Find(&films); result.Error != nil {
-		return nil, result.Error
+	page, _ := strconv.Atoi(c.DefaultQuery("p", "0"))
+	if result := db.Offset(page * 10).Limit(10).Find(&films); result.Error != nil {
+		return result.Error
 	}
-	return &films, nil
+	f.Films = films
+	return nil
 }
 
-func CreateNewFilm(c *gin.Context, db *gorm.DB) (*Film, error) {
+func (f *FilmModel) CreateNew(c *gin.Context, db *gorm.DB) error {
 	var film Film
+	fmt.Println(c.Request.Body)
 	if err := c.ShouldBindJSON(&film); err != nil {
-		return nil, err
+		return err
 	}
-
 	if result := db.Create(&film); result.Error != nil {
-		return nil, result.Error
+		return result.Error
 	}
-	return &film, nil
+	f.Films = []Film{film}
+	return nil
 }
 
-func UpdateFilmById(c *gin.Context, db *gorm.DB) (*Film, error) {
-	film, err := GetFilmById(c, db)
+func (f *FilmModel) UpdateById(c *gin.Context, db *gorm.DB) error {
+	var film Film
+	err := f.GetById(c, db)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if err := c.ShouldBindJSON(film); err != nil {
-		return nil, err
+	if err := c.ShouldBindJSON(&film); err != nil {
+		return err
 	}
-
-	if result := db.Save(film); result != nil {
-		return nil, result.Error
+	film.ID = f.Films[0].ID
+	if result := db.Save(&film); result.Error != nil {
+		return result.Error
 	}
-	return film, nil
+	f.Films[0] = film
+	return nil
 }
 
-func DeleteFilmById(c *gin.Context, db *gorm.DB) (*Film, error) {
-	film, err := GetFilmById(c, db)
+func (f *FilmModel) DeleteById(c *gin.Context, db *gorm.DB) error {
+	var film Film
+	err := f.GetById(c, db)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	if result := db.Delete(film); result.Error != nil {
-		return nil, result.Error
+	film.ID = f.Films[0].ID
+	if result := db.Delete(&film); result.Error != nil {
+		return result.Error
 	}
-	return film, nil
+	return nil
 }

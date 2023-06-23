@@ -1,9 +1,11 @@
 package model
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"net/http/httptest"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
@@ -18,6 +20,13 @@ type Case[T any] struct {
 	Input   []T
 	Error   string
 	Context []gin.Param
+}
+
+type AnyTime struct{}
+
+func (a AnyTime) Match(v driver.Value) bool {
+	_, ok := v.(time.Time)
+	return ok
 }
 
 func MockContext() *gin.Context {

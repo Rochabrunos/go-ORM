@@ -12,52 +12,52 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCategoryGetByIdEndpoint(t *testing.T) {
-	t.Run("Test failing to get a category", func(t *testing.T) {
-		daoCategory = DAO{}.New(&mocks.MockedCategoryModel{})
+func TestLanguageGetByIdEndpoint(t *testing.T) {
+	t.Run("Test failing to get a language", func(t *testing.T) {
+		daoLanguage = DAO{}.New(&mocks.MockedLanguageModel{})
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.AddParam("id", "1")
-		GetByIdCategoryEndpoint(c)
+		GetByIdLanguageEndpoint(c)
 		strJsonError, err := json.Marshal(gin.H{"error": mocks.MockedErrorMessage})
 		assert.NoError(t, err)
 		assert.Equal(t, w.Body.Bytes(), strJsonError)
 		assert.Equal(t, w.Result().StatusCode, http.StatusBadRequest)
 
 	})
-	t.Run("Test return a category as expect", func(t *testing.T) {
-		var result model.CategoryModel
-		daoCategory = DAO{}.New(&model.CategoryModel{})
+	t.Run("Test return a language as expect", func(t *testing.T) {
+		var result model.LanguageModel
+		daoLanguage = DAO{}.New(&model.LanguageModel{})
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.AddParam("id", "1")
-		GetByIdCategoryEndpoint(c)
+		GetByIdLanguageEndpoint(c)
 		assert.Equal(t, w.Result().StatusCode, http.StatusOK, "status code fail to meet the expectation")
 		err := json.Unmarshal(w.Body.Bytes(), &result)
 		assert.NoError(t, err, "return fail to meet the expectation")
-		assert.Equal(t, 1, len(result.Categories))
-		assert.Equal(t, uint(1), result.Categories[0].ID)
+		assert.Equal(t, 1, len(result.Languages))
+		assert.Equal(t, uint(1), result.Languages[0].ID)
 	})
 }
 
-func TestCategoryGetAllEndpoint(t *testing.T) {
-	t.Run("Test failing to get the categories", func(t *testing.T) {
-		daoCategory = DAO{}.New(&mocks.MockedCategoryModel{})
+func TestLanguageGetAllEndpoint(t *testing.T) {
+	t.Run("Test failing to get the language", func(t *testing.T) {
+		daoLanguage = DAO{}.New(&mocks.MockedLanguageModel{})
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
-		GetAllCategoryEndpoint(c)
+		GetAllLanguageEndpoint(c)
 		strJsonError, err := json.Marshal(gin.H{"error": mocks.MockedErrorMessage})
 		assert.NoError(t, err)
 		assert.Equal(t, w.Body.Bytes(), strJsonError)
 		assert.Equal(t, w.Result().StatusCode, http.StatusBadRequest)
 
 	})
-	t.Run("Test return the categories as expect", func(t *testing.T) {
-		var result model.CategoryModel
-		daoCategory = DAO{}.New(&model.CategoryModel{})
+	t.Run("Test return the language as expect", func(t *testing.T) {
+		var result model.LanguageModel
+		daoLanguage = DAO{}.New(&model.LanguageModel{})
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
-		GetAllCategoryEndpoint(c)
+		GetAllLanguageEndpoint(c)
 		assert.Equal(t, w.Result().StatusCode, http.StatusOK, "status code fail to meet the expectation")
 		err := json.Unmarshal(w.Body.Bytes(), &result)
 		assert.NoError(t, err, "return fail to meet the expectation")

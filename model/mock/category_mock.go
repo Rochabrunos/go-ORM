@@ -12,8 +12,6 @@ type MockedCategoryModel struct {
 	Name string
 }
 
-var MockedErrorMessage = "mocked error"
-
 func (c MockedCategoryModel) GetById(*gin.Context, *gorm.DB) error {
 	return errors.New(MockedErrorMessage)
 }

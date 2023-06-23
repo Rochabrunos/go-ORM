@@ -10,7 +10,7 @@ import (
 
 var daoCategory = DAO{}.New(&model.CategoryModel{})
 
-func GetByIdEndpoint(c *gin.Context) {
+func GetByIdCategoryEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
 	err := daoCategory.Model.GetById(c, connDB)
 	if err != nil {
@@ -20,7 +20,7 @@ func GetByIdEndpoint(c *gin.Context) {
 	c.JSON(http.StatusOK, daoCategory.Model)
 }
 
-func GetAllEndpoint(c *gin.Context) {
+func GetAllCategoryEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
 	err := daoCategory.Model.GetAll(c, connDB)
 	if err != nil {
@@ -30,7 +30,7 @@ func GetAllEndpoint(c *gin.Context) {
 	c.JSON(http.StatusOK, daoCategory.Model)
 }
 
-func CreateEndpoint(c *gin.Context) {
+func CreateCategoryEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
 	err := daoCategory.Model.CreateNew(c, connDB)
 	if err != nil {
@@ -40,7 +40,7 @@ func CreateEndpoint(c *gin.Context) {
 	c.JSON(http.StatusOK, daoCategory.Model)
 }
 
-func ModifyEndpoint(c *gin.Context) {
+func ModifyCategoryEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
 	err := daoCategory.Model.UpdateById(c, connDB)
 	if err != nil {
@@ -50,7 +50,7 @@ func ModifyEndpoint(c *gin.Context) {
 	c.JSON(http.StatusOK, daoCategory.Model)
 }
 
-func DeleteEndpoint(c *gin.Context) {
+func DeleteCategoryEndpoint(c *gin.Context) {
 	connDB := service.GetDBConnection()
 	err := daoCategory.Model.DeleteById(c, connDB)
 	if err != nil {
