@@ -8,11 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var daoFilm = DAO{}.New(&model.CategoryModel{})
+var daoFilm = DAO{}.New(&model.FilmModel{}, service.GetDBConnection())
 
-func GetFilmByIdEndpoint(c *gin.Context) {
-	connDB := service.GetDBConnection()
-	err := daoFilm.Model.GetById(c, connDB)
+func GetByIdFilmEndpoint(c *gin.Context) {
+	err := daoFilm.Model.GetById(c, daoFilm.Conn)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -21,8 +20,7 @@ func GetFilmByIdEndpoint(c *gin.Context) {
 }
 
 func GetAllFilmsEndpoint(c *gin.Context) {
-	connDB := service.GetDBConnection()
-	err := daoFilm.Model.GetAll(c, connDB)
+	err := daoFilm.Model.GetAll(c, daoFilm.Conn)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -31,8 +29,7 @@ func GetAllFilmsEndpoint(c *gin.Context) {
 }
 
 func CreateFilmEndpoint(c *gin.Context) {
-	connDB := service.GetDBConnection()
-	err := daoFilm.Model.CreateNew(c, connDB)
+	err := daoFilm.Model.CreateNew(c, daoFilm.Conn)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -41,8 +38,7 @@ func CreateFilmEndpoint(c *gin.Context) {
 }
 
 func ModifyFilmEndpoint(c *gin.Context) {
-	connDB := service.GetDBConnection()
-	err := daoFilm.Model.UpdateById(c, connDB)
+	err := daoFilm.Model.UpdateById(c, daoFilm.Conn)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -51,8 +47,7 @@ func ModifyFilmEndpoint(c *gin.Context) {
 }
 
 func DeleteFilmEndpoint(c *gin.Context) {
-	connDB := service.GetDBConnection()
-	err := daoFilm.Model.DeleteById(c, connDB)
+	err := daoFilm.Model.DeleteById(c, daoFilm.Conn)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return

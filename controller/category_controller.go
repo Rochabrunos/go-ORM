@@ -8,11 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var daoCategory = DAO{}.New(&model.CategoryModel{})
+var daoCategory = DAO{}.New(&model.CategoryModel{}, service.GetDBConnection())
 
 func GetByIdCategoryEndpoint(c *gin.Context) {
-	connDB := service.GetDBConnection()
-	err := daoCategory.Model.GetById(c, connDB)
+	err := daoCategory.Model.GetById(c, daoCategory.Conn)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -21,8 +20,7 @@ func GetByIdCategoryEndpoint(c *gin.Context) {
 }
 
 func GetAllCategoryEndpoint(c *gin.Context) {
-	connDB := service.GetDBConnection()
-	err := daoCategory.Model.GetAll(c, connDB)
+	err := daoCategory.Model.GetAll(c, daoCategory.Conn)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -31,8 +29,7 @@ func GetAllCategoryEndpoint(c *gin.Context) {
 }
 
 func CreateCategoryEndpoint(c *gin.Context) {
-	connDB := service.GetDBConnection()
-	err := daoCategory.Model.CreateNew(c, connDB)
+	err := daoCategory.Model.CreateNew(c, daoCategory.Conn)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -41,8 +38,7 @@ func CreateCategoryEndpoint(c *gin.Context) {
 }
 
 func ModifyCategoryEndpoint(c *gin.Context) {
-	connDB := service.GetDBConnection()
-	err := daoCategory.Model.UpdateById(c, connDB)
+	err := daoCategory.Model.UpdateById(c, daoCategory.Conn)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return
@@ -51,8 +47,7 @@ func ModifyCategoryEndpoint(c *gin.Context) {
 }
 
 func DeleteCategoryEndpoint(c *gin.Context) {
-	connDB := service.GetDBConnection()
-	err := daoCategory.Model.DeleteById(c, connDB)
+	err := daoCategory.Model.DeleteById(c, daoCategory.Conn)
 	if err != nil {
 		SendError(c, http.StatusBadRequest, err)
 		return

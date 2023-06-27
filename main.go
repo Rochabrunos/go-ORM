@@ -4,17 +4,31 @@ import (
 	controllers "orm-golang/controller"
 
 	"github.com/gin-gonic/gin"
+	kgin "github.com/keploy/go-sdk/integrations/kgin/v1"
+	"github.com/keploy/go-sdk/keploy"
 )
 
 func main() {
 	r := gin.Default()
+	port := "8080"
+	k := keploy.New(keploy.Config{
+		App: keploy.AppConfig{
+			Name: "dvdrental",
+			Port: port,
+		},
+		Server: keploy.ServerConfig{
+			URL: "http://localhost:6789/api",
+		},
+	})
+	kgin.GinV1(k, r)
+
 	lang := r.Group("/languages")
 	{
-		lang.GET("/:id", controllers.GetLangByIdEndpoint)
-		lang.GET("", controllers.GetAllLangsEndpoint)
-		lang.POST("", controllers.CreateLangEndpoint)
-		lang.PUT("/:id", controllers.ModifyLangEndpoint)
-		lang.DELETE("/:id", controllers.DeleteLangEndpoint)
+		lang.GET("/:id", controllers.GetByIdLanguageEndpoint)
+		lang.GET("", controllers.GetAllLanguageEndpoint)
+		lang.POST("", controllers.CreateLanguageEndpoint)
+		lang.PUT("/:id", controllers.ModifyLanguageEndpoint)
+		lang.DELETE("/:id", controllers.DeleteLanguageEndpoint)
 	}
 
 	category := r.Group("/categories")
@@ -28,11 +42,11 @@ func main() {
 
 	film := r.Group("/films")
 	{
-		film.GET("/:id", controllers.GetFilmByIdEndpoint)
+		film.GET("/:id", controllers.GetByIdFilmEndpoint)
 		film.GET("", controllers.GetAllFilmsEndpoint)
 		film.POST("", controllers.CreateFilmEndpoint)
 		film.PUT("/:id", controllers.ModifyFilmEndpoint)
 		film.DELETE("/:id", controllers.DeleteFilmEndpoint)
 	}
-	r.Run(":8080") // listen and serve on 0.0.0.0:8080
+	r.Run(":" + port) // listen and serve on 0.0.0.0:8080
 }

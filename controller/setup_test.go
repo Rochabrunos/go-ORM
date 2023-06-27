@@ -1,42 +1,15 @@
-package model
+package controller
 
 import (
-	"database/sql/driver"
 	"fmt"
-	"net/http/httptest"
 	"os"
-	"time"
 
-	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 var connection *gorm.DB = connectDB()
-
-type Case[T any] struct {
-	Title   string
-	Input   []T
-	Error   string
-	Context []gin.Param
-}
-
-type AnyTime struct{}
-
-func (a AnyTime) Match(v driver.Value) bool {
-	_, ok := v.(time.Time)
-	return ok
-}
-
-func MockContext() *gin.Context {
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-
-	return c
-}
 
 func connectDB() *gorm.DB {
 	var dbUser string = os.Getenv("TEST_DB_USER")

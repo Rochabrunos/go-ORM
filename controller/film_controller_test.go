@@ -3,11 +3,10 @@ package controller
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	model "orm-golang/model"
+	"orm-golang/model"
 	mocks "orm-golang/model/mock"
 	"orm-golang/service"
 	"testing"
@@ -16,23 +15,52 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var mockedFilms = []model.Film{
+	{
+		Title:           "Chamber Italian",
+		Description:     "A Fateful Reflection of a Moose And a Husband who must Overcome a Monkey in Nigeria",
+		ReleaseYear:     "2006",
+		Language:        model.Language{ID: 1, Name: "English"},
+		RentalDuration:  7,
+		RentalRate:      4.99,
+		Length:          117,
+		ReplacementCost: 14.99,
+		Rating:          "NC-17",
+		SpecialFeatures: []string{"Trailers"},
+		FullText:        `'chamber':1 'fate':4 'husband':11 'italian':2 'monkey':16 'moos':8 'must':13 'nigeria':18 'overcom':14 'reflect':5`,
+	},
+	{
+		Title:           "Grosse Wonderful",
+		Description:     "A Epic Drama of a Cat And a Explorer who must Redeem a Moose in Australia ",
+		ReleaseYear:     "2006",
+		Language:        model.Language{ID: 1, Name: "English"},
+		RentalDuration:  5,
+		RentalRate:      4.99,
+		Length:          49,
+		ReplacementCost: 19.99,
+		Rating:          "R",
+		SpecialFeatures: []string{"Behind the Scenes"},
+		FullText:        `'australia':18 'cat':8 'drama':5 'epic':4 'explor':11 'gross':1 'moos':16 'must':13 'redeem':14 'wonder':2`,
+	},
+}
+
 func init() {
 	db := GetDBTestConnection()
-	fmt.Println("Droping table")
 	db.Migrator().DropTable(&model.Language{})
-	fmt.Println("Migrating table")
+	db.Migrator().DropTable(&model.Film{})
 	db.AutoMigrate(&model.Language{})
+	db.Create(&model.Language{Name: "English"})
+	db.AutoMigrate(&model.Film{})
 }
-
-func TestLanguageGetByIdEndpoint(t *testing.T) {
-	t.Run("Test failing to get a language", func(t *testing.T) {
-		daoLanguage = DAO{}.New(&mocks.MockedLanguageModel{}, GetDBTestConnection())
+func TestGetByIdFilmEndpoint(t *testing.T) {
+	t.Run("Test failing to get a film", func(t *testing.T) {
+		daoFilm = DAO{}.New(&mocks.MockedFilmModel{}, GetDBTestConnection())
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.AddParam("id", "1")
 
-		GetByIdLanguageEndpoint(c)
+		GetByIdFilmEndpoint(c)
 
 		strJsonError, err := json.Marshal(gin.H{"error": mocks.MockedErrorMessage})
 		assert.NoError(t, err)
@@ -40,33 +68,33 @@ func TestLanguageGetByIdEndpoint(t *testing.T) {
 		assert.Equal(t, w.Result().StatusCode, http.StatusBadRequest)
 
 	})
-	t.Run("Test return a language as expect", func(t *testing.T) {
-		var result model.LanguageModel
+	t.Run("Test return a film as expect", func(t *testing.T) {
+		var result model.FilmModel
 
-		daoLanguage = DAO{}.New(&model.LanguageModel{}, service.GetDBConnection())
+		daoFilm = DAO{}.New(&model.FilmModel{}, service.GetDBConnection())
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.AddParam("id", "1")
 
-		GetByIdLanguageEndpoint(c)
+		GetByIdFilmEndpoint(c)
 
 		assert.Equal(t, w.Result().StatusCode, http.StatusOK, "status code fail to meet the expectation")
 		err := json.Unmarshal(w.Body.Bytes(), &result)
 		assert.NoError(t, err, "return fail to meet the expectation")
-		assert.Equal(t, 1, len(result.Languages))
-		assert.Equal(t, uint(1), result.Languages[0].ID)
+		assert.Equal(t, 1, len(result.Films))
+		assert.Equal(t, uint(1), result.Films[0].ID)
 	})
 }
 
-func TestLanguageGetAllEndpoint(t *testing.T) {
-	t.Run("Test failing to get the language", func(t *testing.T) {
-		daoLanguage = DAO{}.New(&mocks.MockedLanguageModel{}, GetDBTestConnection())
+func TestGetAllFilmEndpoint(t *testing.T) {
+	t.Run("Test failing to get the categories", func(t *testing.T) {
+		daoFilm = DAO{}.New(&mocks.MockedFilmModel{}, GetDBTestConnection())
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
-		GetAllLanguageEndpoint(c)
+		GetAllFilmsEndpoint(c)
 
 		strJsonError, err := json.Marshal(gin.H{"error": mocks.MockedErrorMessage})
 		assert.NoError(t, err)
@@ -74,15 +102,15 @@ func TestLanguageGetAllEndpoint(t *testing.T) {
 		assert.Equal(t, w.Result().StatusCode, http.StatusBadRequest)
 
 	})
-	t.Run("Test return the language as expect", func(t *testing.T) {
-		var result model.LanguageModel
+	t.Run("Test return the categories as expect", func(t *testing.T) {
+		var result model.FilmModel
 
-		daoLanguage = DAO{}.New(&model.LanguageModel{}, service.GetDBConnection())
+		daoFilm = DAO{}.New(&model.FilmModel{}, service.GetDBConnection())
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
-		GetAllLanguageEndpoint(c)
+		GetAllFilmsEndpoint(c)
 
 		assert.Equal(t, w.Result().StatusCode, http.StatusOK, "status code fail to meet the expectation")
 		err := json.Unmarshal(w.Body.Bytes(), &result)
@@ -90,14 +118,14 @@ func TestLanguageGetAllEndpoint(t *testing.T) {
 	})
 }
 
-func TestCreateLanguageEndpoint(t *testing.T) {
-	t.Run("Test fail to create the language", func(t *testing.T) {
-		daoLanguage = DAO{}.New(&mocks.MockedLanguageModel{}, GetDBTestConnection())
+func TestCreateFilmEndpoint(t *testing.T) {
+	t.Run("Test fail to create the film", func(t *testing.T) {
+		daoFilm = DAO{}.New(&mocks.MockedFilmModel{}, GetDBTestConnection())
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
-		CreateLanguageEndpoint(c)
+		CreateFilmEndpoint(c)
 
 		assert.Equal(t, w.Result().StatusCode, http.StatusBadRequest, "status code fail to meet the expectation")
 		strJsonError, err := json.Marshal(gin.H{"error": mocks.MockedErrorMessage})
@@ -105,38 +133,38 @@ func TestCreateLanguageEndpoint(t *testing.T) {
 		assert.Equal(t, w.Body.Bytes(), strJsonError)
 	})
 
-	t.Run("Test successfully creates the language", func(t *testing.T) {
-		var result model.LanguageModel
+	t.Run("Test successfully creates the film", func(t *testing.T) {
+		var result model.FilmModel
 
 		db := GetDBTestConnection()
-		db.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE")
-		daoLanguage = DAO{}.New(&model.LanguageModel{}, db)
+		db.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE")
+
+		daoFilm = DAO{}.New(&model.FilmModel{}, db)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
-		data := map[string]string{"Name": "English"}
+		data := mockedFilms[0]
 		jsonBytes, err := json.Marshal(data)
 		assert.NoError(t, err)
 		c.Request = &http.Request{}
 		c.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 
-		CreateLanguageEndpoint(c)
+		CreateFilmEndpoint(c)
 
 		assert.Equal(t, w.Result().StatusCode, http.StatusOK, "status code fail to meet the expectation")
 		err = json.Unmarshal(w.Body.Bytes(), &result)
 		assert.NoError(t, err)
-		assert.Equal(t, data["Name"], result.Languages[0].Name)
+		assert.Equal(t, data.Title, result.Films[0].Title)
 	})
 }
 
-func TestModifyLanguageEndpoint(t *testing.T) {
-	t.Run("Test fail to modify the language", func(t *testing.T) {
-		daoLanguage = DAO{}.New(&mocks.MockedLanguageModel{}, GetDBTestConnection())
-
+func TestModifyFilmEndpoint(t *testing.T) {
+	t.Run("Test fail to modify the film", func(t *testing.T) {
+		daoFilm = DAO{}.New(&mocks.MockedFilmModel{}, GetDBTestConnection())
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
-		ModifyLanguageEndpoint(c)
+		ModifyFilmEndpoint(c)
 
 		assert.Equal(t, w.Result().StatusCode, http.StatusBadRequest, "status code fail to meet the expectation")
 		strJsonError, err := json.Marshal(gin.H{"error": mocks.MockedErrorMessage})
@@ -144,41 +172,42 @@ func TestModifyLanguageEndpoint(t *testing.T) {
 		assert.Equal(t, w.Body.Bytes(), strJsonError)
 	})
 
-	t.Run("Test successfully modifies the language", func(t *testing.T) {
-		var result model.LanguageModel
+	t.Run("Test successfully modifies the film", func(t *testing.T) {
+		var result model.FilmModel
 
 		db := GetDBTestConnection()
-		db.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE")
-		db.Create(&model.Language{Name: "Portuguese"})
+		db.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE")
+		filmData := mockedFilms[0]
+		db.Create(&filmData)
 
-		daoLanguage = DAO{}.New(&model.LanguageModel{}, db)
+		daoFilm = DAO{}.New(&model.FilmModel{}, db)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.AddParam("id", "1")
-		data := map[string]string{"Name": "English"}
+		data := mockedFilms[1]
 		jsonBytes, err := json.Marshal(data)
 		assert.NoError(t, err)
 		c.Request = &http.Request{}
 		c.Request.Body = io.NopCloser(bytes.NewBuffer(jsonBytes))
 
-		CreateLanguageEndpoint(c)
+		ModifyFilmEndpoint(c)
 
 		assert.Equal(t, w.Result().StatusCode, http.StatusOK, "status code fail to meet the expectation")
 		err = json.Unmarshal(w.Body.Bytes(), &result)
 		assert.NoError(t, err)
-		assert.Equal(t, data["Name"], result.Languages[0].Name)
+		assert.Equal(t, data.Title, result.Films[0].Title)
 	})
 }
 
-func TestDeleteLanguageEndpoint(t *testing.T) {
-	t.Run("Test fail to delete the language", func(t *testing.T) {
-		daoLanguage = DAO{}.New(&mocks.MockedLanguageModel{}, GetDBTestConnection())
+func TestDeleteFilmEndpoint(t *testing.T) {
+	t.Run("Test fail to delete the film", func(t *testing.T) {
+		daoFilm = DAO{}.New(&mocks.MockedFilmModel{}, GetDBTestConnection())
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
-		DeleteLanguageEndpoint(c)
+		DeleteFilmEndpoint(c)
 
 		assert.Equal(t, w.Result().StatusCode, http.StatusBadRequest, "status code fail to meet the expectation")
 		strJsonError, err := json.Marshal(gin.H{"error": mocks.MockedErrorMessage})
@@ -186,25 +215,25 @@ func TestDeleteLanguageEndpoint(t *testing.T) {
 		assert.Equal(t, w.Body.Bytes(), strJsonError)
 	})
 
-	t.Run("Test successfully deletes the language", func(t *testing.T) {
-		var result model.LanguageModel
+	t.Run("Test successfully deletes the film", func(t *testing.T) {
+		var result model.FilmModel
 
 		db := GetDBTestConnection()
-		db.Exec("TRUNCATE TABLE language RESTART IDENTITY CASCADE")
-		languageData := model.Language{Name: "Portuguse"}
-		db.Create(&languageData)
+		db.Exec("TRUNCATE TABLE film RESTART IDENTITY CASCADE")
+		filmData := mockedFilms[0]
+		db.Create(&filmData)
 
-		daoLanguage = DAO{}.New(&model.LanguageModel{}, db)
+		daoFilm = DAO{}.New(&model.FilmModel{}, db)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.AddParam("id", "1")
 
-		DeleteLanguageEndpoint(c)
+		DeleteFilmEndpoint(c)
 
 		assert.Equal(t, w.Result().StatusCode, http.StatusOK, "status code fail to meet the expectation")
 		err := json.Unmarshal(w.Body.Bytes(), &result)
 		assert.NoError(t, err)
-		assert.Equal(t, languageData.Name, result.Languages[0].Name)
+		assert.Equal(t, filmData.Title, result.Films[0].Title)
 	})
 }

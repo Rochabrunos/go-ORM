@@ -7,6 +7,7 @@ import (
 
 type DAO struct {
 	Model Model
+	Conn  *gorm.DB
 }
 
 type Model interface {
@@ -17,9 +18,10 @@ type Model interface {
 	DeleteById(*gin.Context, *gorm.DB) error
 }
 
-func (DAO) New(c Model) DAO {
+func (DAO) New(c Model, conn *gorm.DB) DAO {
 	h := DAO{
 		Model: c,
+		Conn:  conn,
 	}
 
 	return h
